@@ -13,12 +13,12 @@ A Vue 3 application with Tailwind CSS and Flowbite-Vue for mtranscribe.
 
 Install dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
 Run the development server:
 ```bash
-npm run dev
+pnpm dev
 ```
 
 The app will be available at http://localhost:3000
@@ -27,10 +27,10 @@ The app will be available at http://localhost:3000
 
 Build for production:
 ```bash
-npm run build
+pnpm build
 ```
 
 Preview the production build:
 ```bash
-npm run preview
+pnpm preview
 ```
