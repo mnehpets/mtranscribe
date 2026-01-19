@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/mnehpets/mtranscribe/backend/config"
 	"github.com/mnehpets/oneserve/auth"
@@ -16,11 +17,20 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// NotionCredentials holds the OAuth credentials for Notion.
+type NotionCredentials struct {
+	AccessToken  string    `cbor:"1,keyasint"`
+	RefreshToken string    `cbor:"2,keyasint,omitempty"`
+	Expiry       time.Time `cbor:"3,keyasint,omitempty"`
+}
+
 // Server encapsulates the HTTP server and its dependencies.
 type Server struct {
 	cfg              *config.Config
 	sessionProcessor endpoint.Processor
+	authCookie       middleware.SecureCookie[auth.AuthStateMap]
 	registry         *auth.Registry
+	authHandler      *auth.AuthHandler
 	mux              *http.ServeMux
 }
 
@@ -92,12 +102,92 @@ func (s *Server) setupAuth() error {
 
 		// Register as OAuth2 provider (Notion doesn't support OIDC)
 		s.registry.RegisterOAuth2Provider("notion", notionConfig)
+
+		// Create auth state cookie (separate from session cookie)
+		var err error
+		s.authCookie, err = middleware.NewCustomSecureCookie[auth.AuthStateMap](
+			auth.DefaultCookieName,
+			"key1",
+			map[string][]byte{"key1": s.cfg.SessionKey},
+			nil, nil, // use default CBOR marshal
+			middleware.WithCookieOptions("/auth", "", s.cfg.SecureCookie, true, http.SameSiteLaxMode),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create auth cookie: %w", err)
+		}
+
+		// Determine public URL (use redirect URL as base)
+		publicURL := "http://localhost:8080"
+		if s.cfg.NotionRedirectURL != "" {
+			// Parse the redirect URL to get the base
+			if len(s.cfg.NotionRedirectURL) > 0 {
+				// Extract base URL from redirect URL (e.g., http://localhost:8080/auth/callback/notion -> http://localhost:8080)
+				if idx := findNthChar(s.cfg.NotionRedirectURL, '/', 3); idx != -1 {
+					publicURL = s.cfg.NotionRedirectURL[:idx]
+				}
+			}
+		}
+
+		// Create auth handler with success endpoint
+		s.authHandler = auth.NewHandler(
+			s.registry,
+			s.authCookie,
+			publicURL,
+			"/auth",
+			auth.WithSuccessEndpoint(s.handleAuthSuccess),
+			auth.WithProcessors(s.sessionProcessor),
+		)
+
 		log.Println("Notion OAuth provider registered")
 	} else {
 		log.Println("Warning: Notion OAuth not configured. Set NOTION_CLIENT_ID and NOTION_CLIENT_SECRET to enable.")
 	}
 
 	return nil
+}
+
+// findNthChar finds the index of the nth occurrence of a character in a string.
+func findNthChar(s string, ch rune, n int) int {
+	count := 0
+	for i, c := range s {
+		if c == ch {
+			count++
+			if count == n {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+// handleAuthSuccess is called after successful OAuth authentication.
+func (s *Server) handleAuthSuccess(w http.ResponseWriter, r *http.Request, params *auth.SuccessParams) (endpoint.Renderer, error) {
+	session, ok := middleware.SessionFromContext(r.Context())
+	if !ok {
+		return nil, endpoint.Error(http.StatusInternalServerError, "session not found", nil)
+	}
+
+	// Store Notion credentials in session
+	creds := NotionCredentials{
+		AccessToken:  params.Token.AccessToken,
+		RefreshToken: params.Token.RefreshToken,
+	}
+	if !params.Token.Expiry.IsZero() {
+		creds.Expiry = params.Token.Expiry
+	}
+
+	if err := session.Set("notion_creds", creds); err != nil {
+		return nil, endpoint.Error(http.StatusInternalServerError, "failed to store credentials", err)
+	}
+
+	// Log in the user (use a placeholder username for now)
+	if err := session.Login("notion_user"); err != nil {
+		return nil, endpoint.Error(http.StatusInternalServerError, "failed to login", err)
+	}
+
+	// Redirect to next URL or default
+	nextURL := ValidateNextURL(params.NextURL)
+	return &endpoint.RedirectRenderer{URL: nextURL, Status: http.StatusFound}, nil
 }
 
 // setupRoutes configures all HTTP routes.
@@ -107,10 +197,9 @@ func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/auth/logout", endpoint.HandleFunc(s.handleLogout, s.sessionProcessor))
 	s.mux.HandleFunc("/auth/me", endpoint.HandleFunc(s.handleMe, s.sessionProcessor))
 
-	// Notion OAuth endpoints (only if configured)
-	if s.cfg.NotionClientID != "" {
-		s.mux.HandleFunc("/auth/login/notion", endpoint.HandleFunc(s.handleNotionLogin, s.sessionProcessor))
-		s.mux.HandleFunc("/auth/callback/notion", endpoint.HandleFunc(s.handleNotionCallback, s.sessionProcessor))
+	// Mount Notion OAuth handler (if configured)
+	if s.authHandler != nil {
+		s.mux.Handle("/auth/", s.authHandler)
 	}
 
 	// Static file serving
@@ -233,14 +322,16 @@ type MeParams struct{}
 
 // MeResponse defines the response for the /auth/me endpoint.
 type MeResponse struct {
-	LoggedIn bool   `json:"logged_in"`
-	Username string `json:"username,omitempty"`
+	LoggedIn    bool   `json:"logged_in"`
+	Username    string `json:"username,omitempty"`
+	NotionCreds bool   `json:"notion_creds"`
 }
 
 // handleMe returns the current session status.
 func (s *Server) handleMe(w http.ResponseWriter, r *http.Request, params MeParams) (endpoint.Renderer, error) {
 	response := MeResponse{
-		LoggedIn: false,
+		LoggedIn:    false,
+		NotionCreds: false,
 	}
 
 	session, ok := middleware.SessionFromContext(r.Context())
@@ -249,115 +340,13 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request, params MeParam
 			response.LoggedIn = true
 			response.Username = username
 		}
-	}
 
-	return &endpoint.JSONRenderer{Value: response}, nil
-}
-
-// NotionLoginParams defines the parameters for Notion login.
-type NotionLoginParams struct {
-	NextURL string `query:"next_url"`
-}
-
-// handleNotionLogin initiates the Notion OAuth flow.
-func (s *Server) handleNotionLogin(w http.ResponseWriter, r *http.Request, params NotionLoginParams) (endpoint.Renderer, error) {
-	// Require an existing session
-	_, ok := middleware.SessionFromContext(r.Context())
-	if !ok {
-		return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
-	}
-
-	provider, ok := s.registry.Get("notion")
-	if !ok {
-		return nil, endpoint.Error(http.StatusInternalServerError, "notion provider not configured", nil)
-	}
-
-	// Generate state for CSRF protection
-	state := make([]byte, 16)
-	if _, err := rand.Read(state); err != nil {
-		return nil, endpoint.Error(http.StatusInternalServerError, "failed to generate state", err)
-	}
-	stateStr := fmt.Sprintf("%x", state)
-
-	// Store state and next_url in session for verification in callback
-	session, _ := middleware.SessionFromContext(r.Context())
-	if err := session.Set("oauth_state", stateStr); err != nil {
-		return nil, endpoint.Error(http.StatusInternalServerError, "failed to store state", err)
-	}
-	if err := session.Set("oauth_next_url", ValidateNextURL(params.NextURL)); err != nil {
-		return nil, endpoint.Error(http.StatusInternalServerError, "failed to store next_url", err)
-	}
-
-	// Redirect to Notion OAuth authorization URL
-	authURL := provider.Config().AuthCodeURL(stateStr)
-	return &endpoint.RedirectRenderer{URL: authURL, Status: http.StatusFound}, nil
-}
-
-// NotionCallbackParams defines the parameters for Notion OAuth callback.
-type NotionCallbackParams struct {
-	Code  string `query:"code"`
-	State string `query:"state"`
-	Error string `query:"error"`
-}
-
-// handleNotionCallback handles the Notion OAuth callback.
-func (s *Server) handleNotionCallback(w http.ResponseWriter, r *http.Request, params NotionCallbackParams) (endpoint.Renderer, error) {
-	// Require an existing session
-	session, ok := middleware.SessionFromContext(r.Context())
-	if !ok || session == nil {
-		return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
-	}
-
-	// Check for OAuth error
-	if params.Error != "" {
-		log.Printf("OAuth error: %s", params.Error)
-		return nil, endpoint.Error(http.StatusBadRequest, "oauth error: "+params.Error, nil)
-	}
-
-	// Verify state to prevent CSRF
-	var storedState string
-	if err := session.Get("oauth_state", &storedState); err != nil || storedState != params.State {
-		return nil, endpoint.Error(http.StatusBadRequest, "invalid state parameter", nil)
-	}
-
-	// Get next URL from session
-	nextURL := "/u"
-	var storedNextURL string
-	if err := session.Get("oauth_next_url", &storedNextURL); err == nil {
-		nextURL = storedNextURL
-	}
-
-	// Clean up OAuth state from session
-	session.Delete("oauth_state")
-	session.Delete("oauth_next_url")
-
-	provider, ok := s.registry.Get("notion")
-	if !ok {
-		return nil, endpoint.Error(http.StatusInternalServerError, "notion provider not configured", nil)
-	}
-
-	// Exchange authorization code for access token
-	ctx := context.Background()
-	token, err := provider.Config().Exchange(ctx, params.Code)
-	if err != nil {
-		return nil, endpoint.Error(http.StatusInternalServerError, "failed to exchange token", err)
-	}
-
-	// Store token in session
-	if err := session.Set("notion_access_token", token.AccessToken); err != nil {
-		return nil, endpoint.Error(http.StatusInternalServerError, "failed to store access token", err)
-	}
-	if token.RefreshToken != "" {
-		if err := session.Set("notion_refresh_token", token.RefreshToken); err != nil {
-			return nil, endpoint.Error(http.StatusInternalServerError, "failed to store refresh token", err)
+		// Check if Notion credentials are present
+		var creds NotionCredentials
+		if err := session.Get("notion_creds", &creds); err == nil && creds.AccessToken != "" {
+			response.NotionCreds = true
 		}
 	}
 
-	// For now, we'll use a placeholder username. In a real app, we'd fetch user info from Notion API.
-	// The Notion API requires the access token to get user info.
-	if err := session.Login("notion_user"); err != nil {
-		return nil, endpoint.Error(http.StatusInternalServerError, "failed to login", err)
-	}
-
-	return &endpoint.RedirectRenderer{URL: nextURL, Status: http.StatusFound}, nil
+	return &endpoint.JSONRenderer{Value: response}, nil
 }
