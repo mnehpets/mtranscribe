@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-8 bg-gray-200 rounded-lg overflow-hidden">
+  <div class="w-full h-8 bg-gray-200 rounded overflow-hidden">
     <div
       class="h-full bg-green-500 transition-all duration-100"
       :style="{ width: `${volume}%` }"
@@ -28,7 +28,7 @@ let mediaStreamSource = null
 let animationFrameId = null
 
 const SILENT_DB_LEVEL = -100
-const MIN_DB = -60
+const MIN_DB = -50
 const MAX_DB = 0
 
 const cleanup = () => {
@@ -65,13 +65,13 @@ const startAudioProcessing = () => {
   try {
     audioContext = new (window.AudioContext || window.webkitAudioContext)()
     analyserNode = audioContext.createAnalyser()
-    analyserNode.fftSize = 256
+    analyserNode.fftSize = 64
     analyserNode.smoothingTimeConstant = 0.8
 
     mediaStreamSource = audioContext.createMediaStreamSource(props.mediaStream)
     mediaStreamSource.connect(analyserNode)
 
-    const bufferLength = analyserNode.frequencyBinCount
+    const bufferLength = analyserNode.fftSize
     const dataArray = new Uint8Array(bufferLength)
 
     const updateVolume = () => {
@@ -80,21 +80,21 @@ const startAudioProcessing = () => {
         return
       }
 
-      analyserNode.getByteFrequencyData(dataArray)
+      analyserNode.getByteTimeDomainData(dataArray)
 
-      // Calculate RMS (root mean square) for volume
+      // Calculate RMS (root mean square) for volume in time domain
       let sum = 0
       for (let i = 0; i < bufferLength; i++) {
-        sum += dataArray[i] * dataArray[i]
+        // Convert from unsigned byte (0-255) to signed amplitude (-1 to 1)
+        const amplitude = (dataArray[i] - 128) / 128
+        sum += amplitude * amplitude
       }
       const rms = Math.sqrt(sum / bufferLength)
 
-      // Convert to logarithmic scale (dB)
-      // RMS is 0-255, normalize and convert to dB
-      const normalizedRms = rms / 255
-      const db = normalizedRms > 0 ? 20 * Math.log10(normalizedRms) : SILENT_DB_LEVEL
+      // Convert to dB scale
+      const db = rms > 0 ? 20 * Math.log10(rms) : SILENT_DB_LEVEL
 
-      // Map dB range (-60 to 0) to percentage (0 to 100)
+      // Map dB range (-50 to 0) to percentage (0 to 100)
       const clampedDb = Math.max(MIN_DB, Math.min(MAX_DB, db))
       const volumePercent = ((clampedDb - MIN_DB) / (MAX_DB - MIN_DB)) * 100
 
