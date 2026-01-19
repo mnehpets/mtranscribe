@@ -2,6 +2,7 @@ package config
 
 import (
 	"bufio"
+	"crypto/rand"
 	"fmt"
 	"os"
 	"strings"
@@ -92,11 +93,19 @@ func Load() (*Config, error) {
 	sessionKeyStr := getEnv("SESSION_KEY", "")
 	if sessionKeyStr != "" {
 		config.SessionKey = []byte(sessionKeyStr)
+		if len(config.SessionKey) != 32 {
+			return nil, fmt.Errorf("SESSION_KEY must be exactly 32 bytes, got %d bytes", len(config.SessionKey))
+		}
 	} else {
-		// For now, use a placeholder - in production this should be a secure random key
+		// Generate a cryptographically secure random key
 		config.SessionKey = make([]byte, 32)
-		// In a real application, we'd generate this securely
-		copy(config.SessionKey, []byte("dev-key-please-change-in-prod"))
+		if _, err := rand.Read(config.SessionKey); err != nil {
+			return nil, fmt.Errorf("failed to generate session key: %w", err)
+		}
+		// Warning: This key is not persisted, so sessions will be invalidated on restart
+		fmt.Println("Warning: SESSION_KEY not set. Generated a random session key.")
+		fmt.Println("Sessions will not persist across server restarts.")
+		fmt.Println("For production, set SESSION_KEY in .env to a secure 32-byte value.")
 	}
 
 	return config, nil

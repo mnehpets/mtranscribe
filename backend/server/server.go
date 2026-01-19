@@ -235,7 +235,6 @@ type MeParams struct{}
 type MeResponse struct {
 	LoggedIn bool   `json:"logged_in"`
 	Username string `json:"username,omitempty"`
-	Provider string `json:"provider,omitempty"`
 }
 
 // handleMe returns the current session status.
@@ -249,8 +248,6 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request, params MeParam
 		if username, loggedIn := session.Username(); loggedIn {
 			response.LoggedIn = true
 			response.Username = username
-			// For now, we'll assume Notion as the provider if logged in
-			response.Provider = "notion"
 		}
 	}
 
