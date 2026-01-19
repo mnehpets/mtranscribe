@@ -1,7 +1,7 @@
-- [ ] Create `frontend/src/components/VuMeter.vue` component structure <!-- id: 1 -->
-- [ ] Implement `AudioContext` and `AnalyserNode` logic in `VuMeter.vue` <!-- id: 2 -->
-- [ ] Implement logarithmic volume calculation <!-- id: 3 -->
-- [ ] Implement visual rendering with Tailwind CSS <!-- id: 4 -->
-- [ ] Add props validation (`mediaStream`, `enabled`) <!-- id: 5 -->
-- [ ] Add cleanup logic (close AudioContext/disconnect nodes) when disabled or unmounted <!-- id: 6 -->
-- [ ] Add unit tests for `VuMeter.vue` <!-- id: 7 -->
+- [x] Create `frontend/src/components/VuMeter.vue` component structure <!-- id: 1 -->
+- [x] Implement `AudioContext` and `AnalyserNode` logic in `VuMeter.vue` <!-- id: 2 -->
+- [x] Implement logarithmic volume calculation <!-- id: 3 -->
+- [x] Implement visual rendering with Tailwind CSS <!-- id: 4 -->
+- [x] Add props validation (`mediaStream`, `enabled`) <!-- id: 5 -->
+- [x] Add cleanup logic (close AudioContext/disconnect nodes) when disabled or unmounted <!-- id: 6 -->
+- [x] Add unit tests for `VuMeter.vue` <!-- id: 7 -->
