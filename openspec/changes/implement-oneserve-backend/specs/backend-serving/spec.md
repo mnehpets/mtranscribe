@@ -1,0 +1,28 @@
+# Spec: Backend Static Serving
+
+## ADDED Requirements
+
+### Requirement: Serve Frontend SPA
+The backend MUST serve the compiled frontend application static files.
+
+#### Scenario: Root Request
+Given the backend is running
+When a user requests `GET /`
+Then the server redirects the user to `/u` with status 302 (Found) or 301 (Moved Permanently).
+
+#### Scenario: Static Asset Request
+Given the backend is running
+When a user requests `GET /assets/style.css`
+Then the server returns the CSS file contents with correct MIME type.
+
+#### Scenario: SPA Client Routes
+Given the backend is running
+When a user requests `GET /u/some-route`
+Then the server returns the contents of `index.html` with status 200.
+
+#### Scenario: No Generic Fallback
+Given the backend is running
+When a user requests `GET /non-existent-route`
+And `/non-existent-route` does not start with `/u/`
+And it is not a valid static file
+Then the server returns 404 Not Found.

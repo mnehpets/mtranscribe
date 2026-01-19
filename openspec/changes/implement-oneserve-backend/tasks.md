@@ -1,0 +1,21 @@
+# Tasks: Implement Oneserve Backend
+
+- [ ] Update `backend/go.mod` to include `github.com/mnehpets/oneserve`.
+- [ ] Create `backend/server/server.go` to encapsulate server logic.
+- [ ] Implement `.env` file loading logic (e.g., using `godotenv`'s parsing or similar, ensuring no process env pollution).
+- [ ] Configure `oneserve` session middleware (ensure `SameSite` attributes for CSRF protection).
+- [ ] Implement `/auth/login/anon` handler (validate `next_url` starts with `/u/`).
+- [ ] Implement `/auth/logout` handler (validate `next_url` starts with `/u/`).
+- [ ] Implement `/auth/me` handler to return session status.
+- [ ] Implement static file serving: redirect `/` to `/u`, serve `index.html` for `/u/*`.
+- [ ] Implement Notion OAuth client setup (configure Client ID, Secret, and minimal Scopes).
+- [ ] Implement `/auth/login/notion` handler.
+- [ ] Implement `/auth/callback/notion` handler: verify existing session, exchange code, store token.
+- [ ] Implement unit tests for configuration loading (env precedence).
+- [ ] Implement unit tests for `next_url` validation logic.
+- [ ] Implement integration tests for Session Management (`/auth/login/anon`, `/auth/logout`, `/auth/me`).
+- [ ] Implement integration tests for Static Serving (redirects, SPA fallback, 404s).
+- [ ] Implement integration tests for Notion Auth flow (mocking external calls).
+- [ ] Update `backend/main.go` to use the new server setup.
+- [ ] Verify frontend is served correctly at `http://localhost:8080`.
+- [ ] Verify Notion login flow redirects correctly (mock or real creds).
