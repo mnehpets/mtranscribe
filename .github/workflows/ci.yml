@@ -69,5 +69,5 @@ jobs:
           pnpm preview &
           SERVER_PID=$!
           npx wait-on http://localhost:4173 --timeout 30000
-          pnpm test:e2e --config baseUrl=http://localhost:4173
+          pnpm test:e2e
           kill $SERVER_PID
