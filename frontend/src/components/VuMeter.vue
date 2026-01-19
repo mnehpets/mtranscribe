@@ -27,6 +27,10 @@ let analyserNode = null
 let mediaStreamSource = null
 let animationFrameId = null
 
+const SILENT_DB_LEVEL = -100
+const MIN_DB = -60
+const MAX_DB = 0
+
 const cleanup = () => {
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId)
@@ -72,6 +76,7 @@ const startAudioProcessing = () => {
 
     const updateVolume = () => {
       if (!props.enabled || !analyserNode) {
+        cleanup()
         return
       }
 
@@ -87,13 +92,11 @@ const startAudioProcessing = () => {
       // Convert to logarithmic scale (dB)
       // RMS is 0-255, normalize and convert to dB
       const normalizedRms = rms / 255
-      const db = normalizedRms > 0 ? 20 * Math.log10(normalizedRms) : -100
+      const db = normalizedRms > 0 ? 20 * Math.log10(normalizedRms) : SILENT_DB_LEVEL
 
       // Map dB range (-60 to 0) to percentage (0 to 100)
-      const minDb = -60
-      const maxDb = 0
-      const clampedDb = Math.max(minDb, Math.min(maxDb, db))
-      const volumePercent = ((clampedDb - minDb) / (maxDb - minDb)) * 100
+      const clampedDb = Math.max(MIN_DB, Math.min(MAX_DB, db))
+      const volumePercent = ((clampedDb - MIN_DB) / (MAX_DB - MIN_DB)) * 100
 
       volume.value = volumePercent
 
