@@ -2,12 +2,16 @@
 	"name": "mtranscribe",
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:bookworm",
 	"features": {
-		"ghcr.io/devcontainers-contrib/features/pnpm:2": {
+		"ghcr.io/devcontainers-extra/features/pnpm:2": {
 			"version": "latest"
 		},
 		"ghcr.io/devcontainers/features/go:1": {
 			"version": "latest"
 		}
+	},
+	"containerEnv": {
+		"PNPM_HOME": "/home/vscode/opt/pnpm/bin",
+		"PATH": "/home/vscode/opt/pnpm/bin:${containerEnv:PATH}"
 	},
 	"postCreateCommand": "pnpm install -g openspec",
 	"customizations": {
