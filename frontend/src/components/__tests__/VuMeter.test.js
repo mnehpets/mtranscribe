@@ -6,7 +6,7 @@ describe('VuMeter', () => {
   let mockAudioContext
   let mockAnalyserNode
   let mockMediaStreamSource
-  let mockGetByteFrequencyData
+  let mockGetByteTimeDomainData
 
   beforeEach(() => {
     // Mock MediaStream
@@ -17,18 +17,17 @@ describe('VuMeter', () => {
     }
 
     // Mock Web Audio API
-    mockGetByteFrequencyData = vi.fn((array) => {
-      // Simulate some audio data
+    mockGetByteTimeDomainData = vi.fn((array) => {
+      // Simulate some audio data in time domain (128 is center/silence)
       for (let i = 0; i < array.length; i++) {
-        array[i] = 100 // Mid-level audio
+        array[i] = 128 + Math.sin(i / 10) * 20 // Simulated waveform
       }
     })
 
     mockAnalyserNode = {
-      fftSize: 256,
+      fftSize: 64,
       smoothingTimeConstant: 0.8,
-      frequencyBinCount: 128,
-      getByteFrequencyData: mockGetByteFrequencyData,
+      getByteTimeDomainData: mockGetByteTimeDomainData,
       disconnect: vi.fn()
     }
 
@@ -182,10 +181,11 @@ describe('VuMeter', () => {
   })
 
   it('calculates volume using logarithmic scale', async () => {
-    // Mock getByteFrequencyData to return specific values
-    mockGetByteFrequencyData.mockImplementation((array) => {
+    // Mock getByteTimeDomainData to return specific values
+    mockGetByteTimeDomainData.mockImplementation((array) => {
       for (let i = 0; i < array.length; i++) {
-        array[i] = 200 // Higher audio level
+        // Simulate louder audio with amplitude variation
+        array[i] = 128 + Math.sin(i / 5) * 50
       }
     })
 
