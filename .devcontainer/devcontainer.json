@@ -2,9 +2,6 @@
 	"name": "mtranscribe",
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:bookworm",
 	"features": {
-		"ghcr.io/devcontainers/features/node:1": {
-			"version": "lts"
-		},
 		"ghcr.io/devcontainers-contrib/features/pnpm:2": {
 			"version": "latest"
 		},
