@@ -1,0 +1,61 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    name: Backend Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.11'
+      
+      - name: Build backend
+        working-directory: ./backend
+        run: go build -v ./...
+      
+      - name: Run backend tests
+        working-directory: ./backend
+        run: go test -v ./...
+
+  frontend:
+    name: Frontend Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install
+      
+      - name: Build frontend
+        working-directory: ./frontend
+        run: pnpm build
+      
+      - name: Run unit tests
+        working-directory: ./frontend
+        run: pnpm test
+      
+      - name: Run e2e tests
+        working-directory: ./frontend
+        run: pnpm test:e2e
