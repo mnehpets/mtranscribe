@@ -55,12 +55,19 @@ jobs:
         working-directory: ./frontend
         run: pnpm build
       
-      # TODO: Uncomment when vitest is installed and tests are implemented
-      # - name: Run unit tests
-      #   working-directory: ./frontend
-      #   run: pnpm test
+      - name: Run unit tests
+        working-directory: ./frontend
+        run: pnpm test
       
-      # TODO: Uncomment when cypress is installed and tests are implemented
-      # - name: Run e2e tests
-      #   working-directory: ./frontend
-      #   run: pnpm test:e2e
+      - name: Install Cypress binary
+        working-directory: ./frontend
+        run: npx cypress install
+      
+      - name: Start preview server and run e2e tests
+        working-directory: ./frontend
+        run: |
+          pnpm preview &
+          SERVER_PID=$!
+          npx wait-on http://localhost:4173 --timeout 30000
+          pnpm test:e2e --config baseUrl=http://localhost:4173
+          kill $SERVER_PID
