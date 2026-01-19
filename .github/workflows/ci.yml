@@ -52,12 +52,12 @@ jobs:
         working-directory: ./frontend
         run: pnpm build
       
-      - name: Run unit tests
-        working-directory: ./frontend
-        run: pnpm test
-        continue-on-error: true
+      # TODO: Uncomment when vitest is installed and tests are implemented
+      # - name: Run unit tests
+      #   working-directory: ./frontend
+      #   run: pnpm test
       
-      - name: Run e2e tests
-        working-directory: ./frontend
-        run: pnpm test:e2e
-        continue-on-error: true
+      # TODO: Uncomment when cypress is installed and tests are implemented
+      # - name: Run e2e tests
+      #   working-directory: ./frontend
+      #   run: pnpm test:e2e
