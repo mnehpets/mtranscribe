@@ -198,6 +198,8 @@ func (s *Server) loginAnonEndpoint(w http.ResponseWriter, r *http.Request, param
 }
 
 // logoutEndpoint destroys the current session.
+// Note: Unlike other endpoints, logout accepts "/" as a valid next_url in addition to "/u/*" paths,
+// since logging out may redirect to the public home page.
 func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params struct {
 	NextURL string `query:"next_url"`
 }) (endpoint.Renderer, error) {
@@ -207,11 +209,12 @@ func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params s
 		session.Logout()
 	}
 
-	// Validate next_url - for logout, we accept "/" as well as "/u/*"
+	// For logout, we accept both "/" and "/u/*" paths
 	nextURL := params.NextURL
 	if nextURL == "" || nextURL == "/" {
 		nextURL = "/"
 	} else {
+		// For all other paths, use standard validation (requires "/u" or "/u/*")
 		nextURL = ValidateNextURL(nextURL)
 	}
 	

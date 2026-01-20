@@ -41,7 +41,7 @@ func TestValidateNextURL(t *testing.T) {
 			expected: "/u",
 		},
 		{
-			name:     "Path /u rejected (must be /u/ or /u/...)",
+			name:     "Path /u accepted",
 			input:    "/u",
 			expected: "/u",
 		},
