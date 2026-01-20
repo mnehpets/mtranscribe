@@ -200,10 +200,13 @@ func (s *Server) loginAnonEndpoint(w http.ResponseWriter, r *http.Request, param
 		return nil, endpoint.Error(http.StatusInternalServerError, "session not available", nil)
 	}
 
-	// Create anonymous session if not already logged in
+	// Create session if not exists by calling Login
+	// For anonymous sessions, we use an empty username
+	// Login() will create a new session with a random ID
 	if session.ID() == "" {
-		// The session processor will create a new session automatically
-		// We don't need to call Login() for anonymous sessions
+		if err := session.Login(""); err != nil {
+			return nil, endpoint.Error(http.StatusInternalServerError, "failed to create session", err)
+		}
 	}
 
 	// Validate and redirect
