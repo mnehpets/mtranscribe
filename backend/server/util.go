@@ -11,12 +11,12 @@ func ValidateNextURL(nextURL string) string {
 	if nextURL == "" {
 		return "/u"
 	}
+	// Check for protocol-relative URLs first (defense in depth)
+	if strings.HasPrefix(nextURL, "//") {
+		return "/u"
+	}
 	// Accept "/u" or paths starting with "/u/"
 	if nextURL == "/u" || strings.HasPrefix(nextURL, "/u/") {
-		// Also check for protocol-relative URLs (defense in depth)
-		if strings.HasPrefix(nextURL, "//") {
-			return "/u"
-		}
 		return nextURL
 	}
 	return "/u"
