@@ -84,12 +84,13 @@ func (s *Server) setupNotionAuth(sessionKey []byte, secureCookies bool) error {
 
 	// Notion OAuth2 config
 	// Per spec: "the server MUST NOT include a `scope` parameter"
+	// We explicitly set Scopes to empty slice to make this requirement clear
 	notionConfig := &oauth2.Config{
 		ClientID:     s.cfg.NotionClientID,
 		ClientSecret: s.cfg.NotionClientSecret,
 		Endpoint:     notionEndpoint,
 		RedirectURL:  s.cfg.PublicURL + "/auth/callback/notion",
-		Scopes:       nil, // No scopes for Notion
+		Scopes:       []string{}, // Explicitly empty - Notion permissions are set in Notion Portal
 	}
 
 	// Register Notion as a non-OIDC OAuth2 provider
