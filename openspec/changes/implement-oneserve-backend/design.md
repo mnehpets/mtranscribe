@@ -12,22 +12,30 @@ The backend will leverage `github.com/mnehpets/oneserve` to unify static file se
 
 ### 2. Authentication (oneserve.Auth)
 - **Provider:** Notion (OAuth 2.0).
-- **Session:** Secure cookie-based session management using `oneserve`'s built-in session middleware.
+- **Implementation:** Use the OAuth handler in `oneserve/auth` to implement the OAuth flow.
+  - **PreAuth Hook:** Ensure that the user is already logged in before starting the flow.
+  - **Success Handler:**
+    - Recheck that the user is already logged in.
+    - Save the Notion auth token, refresh token, and expiry into a struct.
+    - Save this struct into the session KV.
+    - Do not relogin the user; this flow is used to fetch Notion credentials for the current logged-in user.
+- **Session Usage:** The KV struct stored in the session can be used in subsequent HTTP requests by that user to construct an `oauth2.TokenSource` for a Notion API client.
+- **Session Management:** Secure cookie-based session management using `oneserve`'s built-in session middleware.
   - Sessions are created explicitly via `/auth/login/anon`.
   - Notion authentication REQUIRES an existing session.
-  - **Storage:** Notion access tokens will be stored **in** the existing user session.
 
 ### 3. Endpoints (oneserve.Endpoints)
 - `/auth/login/notion`: Initiates OAuth flow.
 - `/auth/callback/notion`: Handles OAuth callback and session creation.
 - `/auth/login/anon`: Creates an anonymous session (query param: `next_url`).
 - `/auth/logout`: Destroys current session (query param: `next_url`).
-- `/auth/me`: Returns current session status (authenticated/anonymous).
+- `/auth/me`: Returns current session status (authenticated/anonymous) and a flag indicating if Notion credentials have been saved in the session.
 - `/u/*`: Frontend routes.
 
 ### 4. Configuration
 - Configuration (Client ID, Client Secret, OAuth Scopes) will be loaded from a `.env` file and combined with OS environment variables.
-- **Security Constraint:** Values from `.env` MUST NOT be set into the process environment (e.g., via `os.Setenv`) to prevent secret leakage. They should be read directly into the application configuration struct.
+- **Implementation:** Use `joho/godotenv` for `.env` processing.
+- **Security Constraint:** Values from `.env` MUST NOT be set into the process environment (e.g., via `os.Setenv`) to prevent secret leakage. They should be read directly into the application configuration struct (e.g. using `godotenv.Read`).
 - **Principle of Least Privilege:** OAuth Scopes MUST be configured to request the minimum necessary permissions.
 
 ## Data Flow
