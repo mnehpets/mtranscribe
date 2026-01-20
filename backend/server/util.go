@@ -21,3 +21,14 @@ func ValidateNextURL(nextURL string) string {
 	}
 	return "/u"
 }
+
+// ValidateLogoutNextURL validates the next_url parameter for logout endpoints.
+// Unlike regular validation, logout accepts "/" in addition to "/u" or "/u/*" paths,
+// since logging out may redirect to the public home page.
+func ValidateLogoutNextURL(nextURL string) string {
+	if nextURL == "" || nextURL == "/" {
+		return "/"
+	}
+	// For all other paths, use standard validation
+	return ValidateNextURL(nextURL)
+}
