@@ -167,13 +167,13 @@ func (s *Server) setupRoutes() {
 	// Auth routes (managed by auth handler)
 	s.mux.Handle("/auth/", s.authHandler)
 
-	// Session management routes
+	// Session management routes (override auth handler for these specific paths)
 	s.mux.Handle("GET /auth/login/anon", endpoint.HandleFunc(s.loginAnonEndpoint, s.sessionProcessor))
 	s.mux.Handle("GET /auth/logout", endpoint.HandleFunc(s.logoutEndpoint, s.sessionProcessor))
 	s.mux.Handle("GET /auth/me", endpoint.HandleFunc(s.meEndpoint, s.sessionProcessor))
 
-	// Static file serving
-	s.mux.Handle("GET /{path...}", endpoint.HandleFunc(s.fileSystemEndpoint))
+	// Static file serving - use a catch-all that won't conflict
+	s.mux.HandleFunc("/", endpoint.HandleFunc(s.fileSystemEndpoint))
 }
 
 // loginAnonEndpoint creates an anonymous session.
@@ -247,9 +247,7 @@ func (s *Server) meEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) 
 }
 
 // fileSystemEndpoint serves static files and handles SPA routing.
-func (s *Server) fileSystemEndpoint(w http.ResponseWriter, r *http.Request, params struct {
-	Path string `path:"path"`
-}) (endpoint.Renderer, error) {
+func (s *Server) fileSystemEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) (endpoint.Renderer, error) {
 	// Handle root redirect
 	if r.URL.Path == "/" {
 		return &endpoint.RedirectRenderer{URL: "/u", Status: http.StatusFound}, nil
@@ -279,6 +277,10 @@ func (s *Server) fileSystemEndpoint(w http.ResponseWriter, r *http.Request, para
 		DirectoryListing: false,
 	}
 
+	// Extract path from URL
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	params := endpoint.FileSystemParams{Path: path}
+	
 	return fsEndpoint.Endpoint(w, r, params)
 }
 
@@ -289,6 +291,11 @@ func (s *Server) ListenAndServe() error {
 	log.Printf("Public URL: %s", s.cfg.PublicURL)
 	log.Printf("Frontend directory: %s", s.cfg.FrontendDir)
 	return http.ListenAndServe(addr, s.mux)
+}
+
+// ServeHTTP implements http.Handler interface.
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
 }
 
 // mustDecodeHex is a helper that panics on error (used during setup).

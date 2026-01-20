@@ -1,7 +1,10 @@
 package server
 
 import (
+	"os"
+
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/joho/godotenv"
 )
 
 // Config holds the application configuration.
@@ -30,14 +33,44 @@ type Config struct {
 // This function does NOT pollute the process environment with .env values.
 func LoadConfig(envFile string) (*Config, error) {
 	var cfg Config
-	
-	// ReadConfig reads from the .env file and OS env vars without calling os.Setenv
-	if err := cleanenv.ReadConfig(envFile, &cfg); err != nil {
-		// If the .env file doesn't exist, try reading from OS env only
+
+	// First, try to read the .env file without loading it into the environment
+	envMap, err := godotenv.Read(envFile)
+	if err != nil {
+		// If file doesn't exist or can't be read, just use OS environment
 		if err := cleanenv.ReadEnv(&cfg); err != nil {
 			return nil, err
 		}
+		return &cfg, nil
 	}
-	
+
+	// Temporarily set environment variables from the .env file
+	// but only if they're not already set in the OS environment
+	originalEnv := make(map[string]string)
+	keysToUnset := make([]string, 0)
+
+	for key, value := range envMap {
+		if osValue, exists := os.LookupEnv(key); exists {
+			// OS env takes precedence - keep the original
+			originalEnv[key] = osValue
+		} else {
+			// Mark this key for unsetting later
+			keysToUnset = append(keysToUnset, key)
+			os.Setenv(key, value)
+		}
+	}
+
+	// Read configuration from environment
+	err = cleanenv.ReadEnv(&cfg)
+
+	// Clean up: unset the keys we added from .env file
+	for _, key := range keysToUnset {
+		os.Unsetenv(key)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &cfg, nil
 }
