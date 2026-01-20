@@ -116,7 +116,7 @@ PUBLIC_URL=https://example.com
 	}
 }
 
-func TestLoadConfig_NoEnvFilleUsesDefaults(t *testing.T) {
+func TestLoadConfig_NoEnvFileUsesDefaults(t *testing.T) {
 	// Create a temporary directory without .env file
 	tmpDir := t.TempDir()
 	

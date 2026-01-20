@@ -21,6 +21,11 @@ func TestValidateNextURL(t *testing.T) {
 			expected: "/u/",
 		},
 		{
+			name:     "valid path /u exactly",
+			input:    "/u",
+			expected: "/u",
+		},
+		{
 			name:     "invalid empty string",
 			input:    "",
 			expected: "/u",

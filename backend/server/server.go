@@ -227,7 +227,7 @@ func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params s
 
 	// Validate next_url - logout allows any path starting with /u/ or defaults to /
 	var target string
-	if params.NextURL != "" && params.NextURL[0] == '/' && !hasPrefix(params.NextURL, "//") {
+	if params.NextURL != "" && len(params.NextURL) > 0 && params.NextURL[0] == '/' && !hasPrefix(params.NextURL, "//") {
 		target = params.NextURL
 	} else {
 		target = "/"
