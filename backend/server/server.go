@@ -47,19 +47,22 @@ func New(cfg *Config) (*Server, error) {
 		return nil, fmt.Errorf("session key must be 32 bytes (64 hex characters), got %d bytes", len(sessionKey))
 	}
 
+	// Determine if we should use secure cookies based on PUBLIC_URL scheme
+	secureCookies := strings.HasPrefix(cfg.PublicURL, "https://")
+
 	// Setup session middleware with CSRF protection (SameSite=Lax)
 	s.sessionProcessor, err = middleware.NewSessionProcessor(
 		middleware.DefaultCookieName, // "OSS"
 		"key1",
 		map[string][]byte{"key1": sessionKey},
-		middleware.WithCookieOptions("/", "", false, true, http.SameSiteLaxMode), // secure=false for local dev
+		middleware.WithCookieOptions("/", "", secureCookies, true, http.SameSiteLaxMode),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session processor: %w", err)
 	}
 
 	// Setup Notion OAuth
-	if err := s.setupNotionAuth(); err != nil {
+	if err := s.setupNotionAuth(sessionKey, secureCookies); err != nil {
 		return nil, fmt.Errorf("failed to setup Notion auth: %w", err)
 	}
 
@@ -70,7 +73,7 @@ func New(cfg *Config) (*Server, error) {
 }
 
 // setupNotionAuth configures the Notion OAuth provider and auth handler.
-func (s *Server) setupNotionAuth() error {
+func (s *Server) setupNotionAuth(sessionKey []byte, secureCookies bool) error {
 	registry := auth.NewRegistry()
 
 	// Notion OAuth2 endpoint
@@ -96,9 +99,9 @@ func (s *Server) setupNotionAuth() error {
 	authCookie, err := middleware.NewCustomSecureCookie[auth.AuthStateMap](
 		auth.DefaultCookieName, // "osa"
 		"key1",
-		map[string][]byte{"key1": mustDecodeHex(s.cfg.SessionKey)},
+		map[string][]byte{"key1": sessionKey},
 		nil, nil, // use default cbor marshal
-		middleware.WithCookieOptions("/auth", "", false, true, http.SameSiteLaxMode),
+		middleware.WithCookieOptions("/auth", "", secureCookies, true, http.SameSiteLaxMode),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create auth cookie: %w", err)
@@ -198,8 +201,6 @@ func (s *Server) loginAnonEndpoint(w http.ResponseWriter, r *http.Request, param
 }
 
 // logoutEndpoint destroys the current session.
-// Note: Unlike other endpoints, logout accepts "/" as a valid next_url in addition to "/u/*" paths,
-// since logging out may redirect to the public home page.
 func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params struct {
 	NextURL string `query:"next_url"`
 }) (endpoint.Renderer, error) {
@@ -209,14 +210,8 @@ func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params s
 		session.Logout()
 	}
 
-	// For logout, we accept both "/" and "/u/*" paths
-	nextURL := params.NextURL
-	if nextURL == "" || nextURL == "/" {
-		nextURL = "/"
-	} else {
-		// For all other paths, use standard validation (requires "/u" or "/u/*")
-		nextURL = ValidateNextURL(nextURL)
-	}
+	// Use specialized logout validation (accepts "/" and "/u/*")
+	nextURL := ValidateLogoutNextURL(params.NextURL)
 	
 	return &endpoint.RedirectRenderer{URL: nextURL, Status: http.StatusFound}, nil
 }
@@ -299,13 +294,4 @@ func (s *Server) ListenAndServe() error {
 // ServeHTTP implements http.Handler interface.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
-}
-
-// mustDecodeHex is a helper that panics on error (used during setup).
-func mustDecodeHex(s string) []byte {
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		panic(err)
-	}
-	return b
 }

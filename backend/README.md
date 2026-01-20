@@ -82,10 +82,11 @@ go test -v ./server/... -run TestSessionManagement
 ## Security Features
 
 - **CSRF Protection**: Session cookies use `SameSite=Lax` attribute
-- **Open Redirect Prevention**: `next_url` parameter validated to only allow paths starting with `/u/`
+- **Open Redirect Prevention**: `next_url` parameter validated to only allow paths starting with `/u/` (or `/` for logout)
 - **Secure Configuration**: `.env` file values not exported to process environment
 - **Session Encryption**: ChaCha20-Poly1305 authenticated encryption for session cookies
 - **OAuth PKCE**: Proof Key for Code Exchange enabled for Notion OAuth flow
+- **Automatic Secure Cookies**: Cookies automatically use `Secure` flag when `PUBLIC_URL` starts with `https://`
 
 ## Configuration
 

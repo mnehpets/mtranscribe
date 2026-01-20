@@ -71,3 +71,56 @@ func TestValidateNextURL(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateLogoutNextURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Empty string returns /",
+			input:    "",
+			expected: "/",
+		},
+		{
+			name:     "Root path / accepted",
+			input:    "/",
+			expected: "/",
+		},
+		{
+			name:     "Path /u accepted",
+			input:    "/u",
+			expected: "/u",
+		},
+		{
+			name:     "Path /u/ accepted",
+			input:    "/u/",
+			expected: "/u/",
+		},
+		{
+			name:     "Path /u/dashboard accepted",
+			input:    "/u/dashboard",
+			expected: "/u/dashboard",
+		},
+		{
+			name:     "Path /admin rejected",
+			input:    "/admin",
+			expected: "/u",
+		},
+		{
+			name:     "Absolute URL rejected",
+			input:    "https://evil.com",
+			expected: "/u",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ValidateLogoutNextURL(tt.input)
+			if result != tt.expected {
+				t.Errorf("ValidateLogoutNextURL(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
