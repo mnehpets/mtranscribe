@@ -41,6 +41,11 @@ func TestValidateNextURL(t *testing.T) {
 			expected: "/u",
 		},
 		{
+			name:     "invalid protocol-relative URL with /u/ path",
+			input:    "//evil.com/u/dashboard",
+			expected: "/u",
+		},
+		{
 			name:     "invalid path not starting with /u/",
 			input:    "/admin",
 			expected: "/u",

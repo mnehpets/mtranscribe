@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/mnehpets/oneserve/auth"
 	"github.com/mnehpets/oneserve/endpoint"
@@ -225,20 +226,16 @@ func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params s
 		}
 	}
 
-	// Validate next_url - logout allows any path starting with /u/ or defaults to /
+	// Validate next_url - logout is more permissive, allowing any local path
+	// but still preventing protocol-relative URLs
 	var target string
-	if params.NextURL != "" && len(params.NextURL) > 0 && params.NextURL[0] == '/' && !hasPrefix(params.NextURL, "//") {
+	if params.NextURL != "" && params.NextURL[0] == '/' && !strings.HasPrefix(params.NextURL, "//") {
 		target = params.NextURL
 	} else {
 		target = "/"
 	}
 	
 	return &endpoint.RedirectRenderer{URL: target, Status: http.StatusFound}, nil
-}
-
-// hasPrefix is a helper to check string prefix
-func hasPrefix(s, prefix string) bool {
-	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }
 
 // meEndpoint returns session status.
