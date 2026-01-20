@@ -17,6 +17,7 @@ backend/*.dylib
 backend/*.test
 backend/*.out
 backend/go.work
+backend/.env
 
 # Frontend (Node.js/Vue)
 frontend/node_modules/
