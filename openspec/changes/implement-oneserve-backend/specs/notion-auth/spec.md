@@ -9,7 +9,8 @@ The backend MUST provide an endpoint to initiate Notion OAuth 2.0 authentication
 Given the backend is configured with Notion Client ID
 And the user has an active session
 When a user requests `GET /auth/login/notion?next_url=/u/auth-result`
-Then the server redirects to `https://api.notion.com/v1/oauth/authorize` with the correct client ID and redirect URI.
+Then the server redirects to `https://api.notion.com/v1/oauth/authorize` with the correct client ID, redirect URI, `response_type=code`, and `owner=user`.
+And the server MUST NOT include a `scope` parameter in the authorization URL.
 
 #### Scenario: Initiate Login without Session
 Given the user does NOT have an active session
