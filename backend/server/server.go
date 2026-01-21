@@ -78,8 +78,8 @@ func (s *Server) setupNotionAuth(sessionKey []byte, secureCookies bool) error {
 
 	// Notion OAuth2 endpoint
 	notionEndpoint := oauth2.Endpoint{
-		AuthURL:  "https://api.notion.com/v1/oauth/authorize",
-		TokenURL: "https://api.notion.com/v1/oauth/token",
+		AuthURL:  s.cfg.NotionAuthURL,
+		TokenURL: s.cfg.NotionTokenURL,
 	}
 
 	// Notion OAuth2 config
@@ -181,8 +181,8 @@ func (s *Server) setupRoutes() {
 	// Static file serving endpoints - register first with most specific patterns
 	// 1. Root redirect
 	s.mux.HandleFunc("GET /{$}", endpoint.HandleFunc(s.rootRedirectEndpoint))
-	// 2. SPA endpoint - always serves index.html for /u/*; /u will redirect to /u/
-	s.mux.HandleFunc("GET /u/{path...}", endpoint.HandleFunc(s.spaEndpoint))
+	// 2. Frontend endpoint - always serves index.html for /u/*; /u will redirect to /u/
+	s.mux.HandleFunc("GET /u/{path...}", endpoint.HandleFunc(s.frontendEndpoint))
 
 	// Auth routes (managed by auth handler)
 	s.mux.Handle("/auth/", s.authHandler)
@@ -269,8 +269,8 @@ func (s *Server) rootRedirectEndpoint(w http.ResponseWriter, r *http.Request, _ 
 	return &endpoint.RedirectRenderer{URL: "/u/", Status: http.StatusFound}, nil
 }
 
-// spaEndpoint always serves index.html for SPA routes.
-func (s *Server) spaEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) (endpoint.Renderer, error) {
+// frontendEndpoint always serves index.html for frontend routes.
+func (s *Server) frontendEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) (endpoint.Renderer, error) {
 	root := os.DirFS(s.cfg.FrontendDir)
 	file, err := root.Open("index.html")
 	if err != nil {

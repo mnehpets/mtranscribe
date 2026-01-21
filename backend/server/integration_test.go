@@ -1,8 +1,12 @@
 package server_test
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -105,6 +109,11 @@ func TestSessionManagement_AnonymousLoginInvalidRedirect(t *testing.T) {
 		{
 			name:     "Path not starting with /u/",
 			nextURL:  "/admin",
+			expected: "/u/",
+		},
+		{
+			name:     "Empty URL",
+			nextURL:  "",
 			expected: "/u/",
 		},
 	}
@@ -257,7 +266,7 @@ func TestSessionManagement_Me(t *testing.T) {
 		// Now check /auth/me with the session cookie
 		req, _ = http.NewRequest("GET", ts.URL+"/auth/me", nil)
 		req.AddCookie(sessionCookie)
-		
+
 		client2 := &http.Client{}
 		resp, err = client2.Do(req)
 		if err != nil {
@@ -277,4 +286,137 @@ func TestSessionManagement_Me(t *testing.T) {
 			t.Errorf("Expected has_notion_token to be false, got: %s", bodyStr)
 		}
 	})
+}
+
+func TestNotionAuthFlow(t *testing.T) {
+	// 1. Setup Mock OAuth Server
+	mockOAuthServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/token" {
+			if r.Method != "POST" {
+				t.Errorf("Expected POST to /token, got %s", r.Method)
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{
+				"access_token": "mock_access_token",
+				"token_type": "bearer",
+				"expires_in": 3600,
+				"workspace_id": "mock_workspace_id",
+				"bot_id": "mock_bot_id"
+			}`))
+			return
+		}
+		// Allow any other path for authorize redirect if needed
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	defer mockOAuthServer.Close()
+
+	// 2. Setup Server with Mock URLs
+	cfg := &server.Config{
+		Port:               "8080",
+		SessionKey:         "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=",
+		NotionClientID:     "test_client_id",
+		NotionClientSecret: "test_client_secret",
+		PublicURL:          "http://localhost:8080",
+		FrontendDir:        "../../frontend/dist",
+		NotionAuthURL:      mockOAuthServer.URL + "/authorize",
+		NotionTokenURL:     mockOAuthServer.URL + "/token",
+	}
+
+	srv, err := server.New(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+
+	ts := httptest.NewServer(http.Handler(srv))
+	defer ts.Close()
+
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Jar: jar,
+	}
+
+	// 3. Anonymous Login to get Session
+	loginReq, _ := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
+	resp, err := client.Do(loginReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusFound {
+		t.Fatalf("Expected 302 Found for login, got %d", resp.StatusCode)
+	}
+
+	// 4. Initiate Notion Login
+	authReq, _ := http.NewRequest("GET", ts.URL+"/auth/login/notion", nil)
+	resp, err = client.Do(authReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusFound {
+		t.Fatalf("Expected 302 Found for auth init, got %d", resp.StatusCode)
+	}
+
+	loc, err := url.Parse(resp.Header.Get("Location"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify redirect to mock auth URL
+	if !strings.HasPrefix(loc.String(), mockOAuthServer.URL+"/authorize") {
+		t.Errorf("Expected redirect to %s..., got %s", mockOAuthServer.URL+"/authorize", loc.String())
+	}
+
+	state := loc.Query().Get("state")
+	if state == "" {
+		t.Error("State parameter missing in redirect URL")
+	}
+
+	// 5. Callback
+	// Simulate the user being redirected back with code and state
+	callbackURL := ts.URL + "/auth/callback/notion?code=mock_code&state=" + state
+	callbackReq, _ := http.NewRequest("GET", callbackURL, nil)
+	
+	resp, err = client.Do(callbackReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusFound {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("Expected 302 Found at callback, got %d. Body: %s", resp.StatusCode, string(body))
+	}
+
+	// 6. Verify Token in Session
+	meReq, _ := http.NewRequest("GET", ts.URL+"/auth/me", nil)
+	resp, err = client.Do(meReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected 200 OK for /auth/me, got %d", resp.StatusCode)
+	}
+
+	var meResp map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&meResp); err != nil {
+		t.Fatal(err)
+	}
+
+	if loggedIn, ok := meResp["logged_in"].(bool); !ok || !loggedIn {
+		t.Errorf("Expected logged_in to be true")
+	}
+
+	if hasToken, ok := meResp["has_notion_token"].(bool); !ok || !hasToken {
+		t.Errorf("Expected has_notion_token to be true")
+	}
 }
