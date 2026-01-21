@@ -36,7 +36,7 @@ interface Props {
   transcript: Transcript
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const colors = [
   'text-red-600',
