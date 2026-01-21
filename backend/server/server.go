@@ -126,7 +126,12 @@ func (s *Server) setupNotionAuth(sessionKey []byte, secureCookies bool) error {
 func (s *Server) preAuthHook(ctx context.Context, w http.ResponseWriter, r *http.Request, providerID string, params auth.AuthParams) (auth.AuthParams, error) {
 	// Check if user has an active session
 	session, ok := middleware.SessionFromContext(ctx)
-	if !ok || session.ID() == "" {
+	if !ok {
+		return params, endpoint.Error(http.StatusUnauthorized, "session required", nil)
+	}
+	
+	// Use Username() to determine if user is logged in
+	if _, loggedIn := session.Username(); !loggedIn {
 		return params, endpoint.Error(http.StatusUnauthorized, "session required", nil)
 	}
 
@@ -140,7 +145,12 @@ func (s *Server) preAuthHook(ctx context.Context, w http.ResponseWriter, r *http
 func (s *Server) authSuccessEndpoint(w http.ResponseWriter, r *http.Request, params *auth.SuccessParams) (endpoint.Renderer, error) {
 	// Verify user still has an active session
 	session, ok := middleware.SessionFromContext(r.Context())
-	if !ok || session.ID() == "" {
+	if !ok {
+		return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
+	}
+	
+	// Use Username() to determine if user is logged in
+	if _, loggedIn := session.Username(); !loggedIn {
 		return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
 	}
 
@@ -168,6 +178,13 @@ func (s *Server) authSuccessEndpoint(w http.ResponseWriter, r *http.Request, par
 
 // setupRoutes configures all HTTP routes.
 func (s *Server) setupRoutes() {
+	// Static file serving endpoints - register first with most specific patterns
+	// 1. Root redirect
+	s.mux.HandleFunc("GET /{$}", endpoint.HandleFunc(s.rootRedirectEndpoint))
+	// 2. SPA endpoint - always serves index.html for /u and /u/*
+	s.mux.HandleFunc("GET /u", endpoint.HandleFunc(s.spaEndpoint))
+	s.mux.HandleFunc("GET /u/{path...}", endpoint.HandleFunc(s.spaEndpoint))
+	
 	// Auth routes (managed by auth handler)
 	s.mux.Handle("/auth/", s.authHandler)
 
@@ -176,7 +193,7 @@ func (s *Server) setupRoutes() {
 	s.mux.Handle("GET /auth/logout", endpoint.HandleFunc(s.logoutEndpoint, s.sessionProcessor))
 	s.mux.Handle("GET /auth/me", endpoint.HandleFunc(s.meEndpoint, s.sessionProcessor))
 
-	// Static file serving - use a catch-all that won't conflict
+	// 3. File system endpoint - serves static assets (catch-all for everything else)
 	s.mux.HandleFunc("/", endpoint.HandleFunc(s.fileSystemEndpoint))
 }
 
@@ -211,8 +228,8 @@ func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params s
 		session.Logout()
 	}
 
-	// Use specialized logout validation (accepts "/" and "/u/*")
-	nextURL := ValidateLogoutNextURL(params.NextURL)
+	// Use the same ValidateNextURL code as login
+	nextURL := ValidateNextURL(params.NextURL)
 	
 	return &endpoint.RedirectRenderer{URL: nextURL, Status: http.StatusFound}, nil
 }
@@ -226,53 +243,55 @@ func (s *Server) meEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) 
 		"has_notion_token":   false,
 	}
 
-	if ok && session.ID() != "" {
-		response["logged_in"] = true
-		response["session_id"] = session.ID()
-		
-		// Check if Notion token exists
-		var notionToken NotionToken
-		if err := session.Get("notion_token", &notionToken); err == nil && notionToken.AccessToken != "" {
-			response["has_notion_token"] = true
-		}
-		
-		// Include username if logged in with username
-		if username, loggedIn := session.Username(); loggedIn && username != "" {
-			response["username"] = username
+	if ok {
+		// Use Username() to determine if user is logged in
+		if _, loggedIn := session.Username(); loggedIn {
+			response["logged_in"] = true
+			response["session_id"] = session.ID()
+			
+			// Check if Notion token exists
+			var notionToken NotionToken
+			if err := session.Get("notion_token", &notionToken); err == nil && notionToken.AccessToken != "" {
+				response["has_notion_token"] = true
+			}
+			
+			// Include username if present (don't check for empty string)
+			if username, _ := session.Username(); username != "" {
+				response["username"] = username
+			}
 		}
 	}
 
 	return &endpoint.JSONRenderer{Value: response}, nil
 }
 
-// fileSystemEndpoint serves static files and handles SPA routing.
-func (s *Server) fileSystemEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) (endpoint.Renderer, error) {
-	// Handle root redirect
-	if r.URL.Path == "/" {
-		return &endpoint.RedirectRenderer{URL: "/u", Status: http.StatusFound}, nil
+// rootRedirectEndpoint redirects root to /u/ to avoid double redirect.
+func (s *Server) rootRedirectEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) (endpoint.Renderer, error) {
+	return &endpoint.RedirectRenderer{URL: "/u/", Status: http.StatusFound}, nil
+}
+
+// spaEndpoint always serves index.html for SPA routes.
+func (s *Server) spaEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) (endpoint.Renderer, error) {
+	root := os.DirFS(s.cfg.FrontendDir)
+	file, err := root.Open("index.html")
+	if err != nil {
+		return nil, endpoint.Error(http.StatusNotFound, "frontend not found", err)
 	}
 
-	// Create filesystem
+	return &endpoint.StaticFileRenderer{
+		File: file,
+	}, nil
+}
+
+// fileSystemEndpoint serves static files (assets, etc).
+func (s *Server) fileSystemEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) (endpoint.Renderer, error) {
 	root := os.DirFS(s.cfg.FrontendDir)
 
-	// For /u/* routes, serve index.html (SPA support)
-	if r.URL.Path == "/u" || strings.HasPrefix(r.URL.Path, "/u/") {
-		file, err := root.Open("index.html")
-		if err != nil {
-			return nil, endpoint.Error(http.StatusNotFound, "frontend not found", err)
-		}
-
-		return &endpoint.StaticFileRenderer{
-			File: file,
-		}, nil
-	}
-
-	// For other routes, try to serve the file directly
 	fsEndpoint := &endpoint.FileSystem{
 		FS: func(ctx context.Context, r *http.Request) (fs.FS, error) {
 			return root, nil
 		},
-		IndexHTML:        false, // Don't auto-serve index.html for non-/u routes
+		IndexHTML:        false,
 		DirectoryListing: false,
 	}
 

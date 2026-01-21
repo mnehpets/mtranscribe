@@ -113,5 +113,5 @@ The backend is structured as follows:
 
 The server uses:
 - **oneserve** for endpoint handling, static file serving, sessions, and OAuth
-- **cleanenv** for configuration management
+- **koanf** for configuration management
 - **oauth2** for OAuth 2.0 token exchange
