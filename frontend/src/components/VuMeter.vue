@@ -7,32 +7,31 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
 
-const props = defineProps({
-  mediaStream: {
-    type: Object,
-    default: null
-  },
-  enabled: {
-    type: Boolean,
-    default: false
-  }
+interface Props {
+  mediaStream?: MediaStream | null
+  enabled?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  mediaStream: null,
+  enabled: false
 })
 
-const volume = ref(0)
-let audioContext = null
-let analyserNode = null
-let mediaStreamSource = null
-let animationFrameId = null
+const volume = ref<number>(0)
+let audioContext: AudioContext | null = null
+let analyserNode: AnalyserNode | null = null
+let mediaStreamSource: MediaStreamAudioSourceNode | null = null
+let animationFrameId: number | null = null
 
 const SILENT_DB_LEVEL = -100
 const MIN_DB = -50
 const MAX_DB = -6
 
 const cleanup = () => {
-  if (animationFrameId) {
+  if (animationFrameId !== null) {
     cancelAnimationFrame(animationFrameId)
     animationFrameId = null
   }
@@ -63,7 +62,8 @@ const startAudioProcessing = () => {
   cleanup()
 
   try {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    audioContext = new AudioContextClass()
     analyserNode = audioContext.createAnalyser()
     analyserNode.fftSize = 64
     analyserNode.smoothingTimeConstant = 0.8
