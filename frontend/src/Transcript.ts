@@ -28,10 +28,9 @@ export class Transcript {
   }
 
   /**
-   * Updates the interim text for a turn from a specific source.
-   * Replaces the entire interim text.
+   * Gets or creates an active turn for the specified source.
    */
-  updateInterim(text: string, source: TurnSource): void {
+  private getOrCreateActiveTurn(source: TurnSource): Turn {
     let turn = this.activeTurns.get(source);
     if (!turn) {
       turn = {
@@ -44,6 +43,15 @@ export class Transcript {
       this.activeTurns.set(source, turn);
       this.turns.push(turn);
     }
+    return turn;
+  }
+
+  /**
+   * Updates the interim text for a turn from a specific source.
+   * Replaces the entire interim text.
+   */
+  updateInterim(text: string, source: TurnSource): void {
+    const turn = this.getOrCreateActiveTurn(source);
     turn.interim = text;
   }
 
@@ -51,18 +59,7 @@ export class Transcript {
    * Appends to the interim text for a turn from a specific source.
    */
   appendInterim(delta: string, source: TurnSource): void {
-    let turn = this.activeTurns.get(source);
-    if (!turn) {
-      turn = {
-        speaker: '',
-        text: '',
-        timestamp: new Date(),
-        interim: '',
-        source
-      };
-      this.activeTurns.set(source, turn);
-      this.turns.push(turn);
-    }
+    const turn = this.getOrCreateActiveTurn(source);
     turn.interim += delta;
   }
 
@@ -70,18 +67,7 @@ export class Transcript {
    * Appends to the stable text for a turn from a specific source and clears interim.
    */
   appendStable(text: string, source: TurnSource): void {
-    let turn = this.activeTurns.get(source);
-    if (!turn) {
-      turn = {
-        speaker: '',
-        text: '',
-        timestamp: new Date(),
-        interim: '',
-        source
-      };
-      this.activeTurns.set(source, turn);
-      this.turns.push(turn);
-    }
+    const turn = this.getOrCreateActiveTurn(source);
     turn.text += text;
     turn.interim = '';
   }

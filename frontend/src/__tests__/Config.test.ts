@@ -4,8 +4,7 @@ import { AppConfig } from '../Config'
 describe('AppConfig', () => {
   beforeEach(() => {
     // Reset singleton instance for testing
-    // @ts-ignore - accessing private field for test reset
-    AppConfig.instance = undefined
+    AppConfig.resetInstance()
   })
 
   it('returns the same instance on multiple calls', () => {

@@ -111,11 +111,15 @@ export class DeepgramTranscriber implements Transcriber {
     }
 
     // Convert Blob to ArrayBuffer and send to Deepgram
-    data.arrayBuffer().then((buffer) => {
-      if (this.connection) {
-        this.connection.send(buffer);
-      }
-    });
+    data.arrayBuffer()
+      .then((buffer) => {
+        if (this.connection) {
+          this.connection.send(buffer);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to convert audio data to ArrayBuffer:', error);
+      });
   }
 
   /**

@@ -17,4 +17,14 @@ export class AppConfig {
     }
     return AppConfig.instance;
   }
+
+  /**
+   * Reset the singleton instance (for testing purposes only).
+   */
+  static resetInstance(): void {
+    if (AppConfig.instance) {
+      AppConfig.instance.deepgramApiKey = '';
+      AppConfig.instance = undefined as any;
+    }
+  }
 }
