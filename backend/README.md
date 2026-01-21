@@ -46,8 +46,7 @@ The server will start on port 8080 (configurable via `PORT` environment variable
 ## Endpoints
 
 ### Static Serving
-- `GET /` - Redirects to `/u`
-- `GET /u` - Serves the frontend SPA (index.html)
+- `GET /` - Redirects to `/u/`
 - `GET /u/*` - Serves the frontend SPA for all client-side routes
 - `GET /assets/*` - Serves static assets (CSS, JS, etc.)
 
@@ -114,4 +113,3 @@ The backend is structured as follows:
 The server uses:
 - **oneserve** for endpoint handling, static file serving, sessions, and OAuth
 - **koanf** for configuration management
-- **oauth2** for OAuth 2.0 token exchange

@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log"
@@ -38,13 +38,13 @@ func New(cfg *Config) (*Server, error) {
 		mux: http.NewServeMux(),
 	}
 
-	// Decode session key from hex
-	sessionKey, err := hex.DecodeString(cfg.SessionKey)
+	// Decode session key from base64url
+	sessionKey, err := base64.URLEncoding.DecodeString(cfg.SessionKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid session key: %w", err)
 	}
 	if len(sessionKey) != 32 {
-		return nil, fmt.Errorf("session key must be 32 bytes (64 hex characters), got %d bytes", len(sessionKey))
+		return nil, fmt.Errorf("session key must be 32 bytes, got %d bytes", len(sessionKey))
 	}
 
 	// Determine if we should use secure cookies based on PUBLIC_URL scheme
@@ -129,7 +129,7 @@ func (s *Server) preAuthHook(ctx context.Context, w http.ResponseWriter, r *http
 	if !ok {
 		return params, endpoint.Error(http.StatusUnauthorized, "session required", nil)
 	}
-	
+
 	// Use Username() to determine if user is logged in
 	if _, loggedIn := session.Username(); !loggedIn {
 		return params, endpoint.Error(http.StatusUnauthorized, "session required", nil)
@@ -148,7 +148,7 @@ func (s *Server) authSuccessEndpoint(w http.ResponseWriter, r *http.Request, par
 	if !ok {
 		return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
 	}
-	
+
 	// Use Username() to determine if user is logged in
 	if _, loggedIn := session.Username(); !loggedIn {
 		return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
@@ -181,10 +181,9 @@ func (s *Server) setupRoutes() {
 	// Static file serving endpoints - register first with most specific patterns
 	// 1. Root redirect
 	s.mux.HandleFunc("GET /{$}", endpoint.HandleFunc(s.rootRedirectEndpoint))
-	// 2. SPA endpoint - always serves index.html for /u and /u/*
-	s.mux.HandleFunc("GET /u", endpoint.HandleFunc(s.spaEndpoint))
+	// 2. SPA endpoint - always serves index.html for /u/*; /u will redirect to /u/
 	s.mux.HandleFunc("GET /u/{path...}", endpoint.HandleFunc(s.spaEndpoint))
-	
+
 	// Auth routes (managed by auth handler)
 	s.mux.Handle("/auth/", s.authHandler)
 
@@ -230,17 +229,17 @@ func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params s
 
 	// Use the same ValidateNextURL code as login
 	nextURL := ValidateNextURL(params.NextURL)
-	
+
 	return &endpoint.RedirectRenderer{URL: nextURL, Status: http.StatusFound}, nil
 }
 
 // meEndpoint returns the current session status.
 func (s *Server) meEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) (endpoint.Renderer, error) {
 	session, ok := middleware.SessionFromContext(r.Context())
-	
+
 	response := map[string]interface{}{
-		"logged_in":          false,
-		"has_notion_token":   false,
+		"logged_in":        false,
+		"has_notion_token": false,
 	}
 
 	if ok {
@@ -248,13 +247,13 @@ func (s *Server) meEndpoint(w http.ResponseWriter, r *http.Request, _ struct{}) 
 		if _, loggedIn := session.Username(); loggedIn {
 			response["logged_in"] = true
 			response["session_id"] = session.ID()
-			
+
 			// Check if Notion token exists
 			var notionToken NotionToken
 			if err := session.Get("notion_token", &notionToken); err == nil && notionToken.AccessToken != "" {
 				response["has_notion_token"] = true
 			}
-			
+
 			// Include username if present (don't check for empty string)
 			if username, _ := session.Username(); username != "" {
 				response["username"] = username
@@ -298,7 +297,7 @@ func (s *Server) fileSystemEndpoint(w http.ResponseWriter, r *http.Request, _ st
 	// Extract path from URL
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	params := endpoint.FileSystemParams{Path: path}
-	
+
 	return fsEndpoint.Endpoint(w, r, params)
 }
 
