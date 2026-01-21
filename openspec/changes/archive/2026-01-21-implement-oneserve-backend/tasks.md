@@ -2,7 +2,7 @@
 
 - [x] Update `backend/go.mod` to include `github.com/mnehpets/oneserve`.
 - [x] Create `backend/server/server.go` to encapsulate server logic.
-- [x] Implement `.env` file loading logic using `cleanenv` (ensuring no process env pollution).
+- [x] Implement `.env` file loading logic using `koanf` (ensuring no process env pollution).
 - [x] Configure `oneserve` session middleware (ensure `SameSite` attributes for CSRF protection).
 - [x] Implement `/auth/login/anon` handler (validate `next_url` starts with `/u/`).
 - [x] Implement `/auth/logout` handler (validate `next_url` starts with `/u/`).
