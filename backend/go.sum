@@ -30,6 +30,8 @@ github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zx
 github.com/mitchellh/reflectwalk v1.0.2/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/mnehpets/oneserve v0.0.0-20260116071944-d3bba180d096 h1:nGDbyBQdzPpdiTAkbvufRxWrMVeW7JX2S0LozB5nL9I=
 github.com/mnehpets/oneserve v0.0.0-20260116071944-d3bba180d096/go.mod h1:Mefkf9Klr5HD1aflo4af27O6c7BYhTWEVGrEmNIibW0=
+github.com/mnehpets/oneserve v0.0.0-20260121061301-3ccfaaf2eaa2 h1:tbZTAEOODIgadDJJDl7JdO/g9i6MC4rDLcneRDZZ+h4=
+github.com/mnehpets/oneserve v0.0.0-20260121061301-3ccfaaf2eaa2/go.mod h1:Mefkf9Klr5HD1aflo4af27O6c7BYhTWEVGrEmNIibW0=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 golang.org/x/crypto v0.47.0 h1:V6e3FRj+n4dbpw86FJ8Fv7XVOql7TEwpHapKoMJ/GO8=

@@ -39,7 +39,7 @@ func TestSessionManagement_AnonymousLogin(t *testing.T) {
 	defer ts.Close()
 
 	// Test anonymous login with redirect
-	req, err := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
+	req, err := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func TestSessionManagement_AnonymousLoginInvalidRedirect(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req, err := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url="+tt.nextURL, nil)
+			req, err := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url="+tt.nextURL, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -157,7 +157,7 @@ func TestSessionManagement_Logout(t *testing.T) {
 	}
 
 	// First, log in anonymously
-	req, _ := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/", nil)
+	req, _ := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url=/u/", nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -178,7 +178,7 @@ func TestSessionManagement_Logout(t *testing.T) {
 	}
 
 	// Now log out - with "/" it should redirect to "/u/" since we use ValidateNextURL
-	req, _ = http.NewRequest("GET", ts.URL+"/auth/logout?next_url=/", nil)
+	req, _ = http.NewRequest("POST", ts.URL+"/auth/logout?next_url=/", nil)
 	req.AddCookie(sessionCookie)
 	resp, err = client.Do(req)
 	if err != nil {
@@ -248,7 +248,7 @@ func TestSessionManagement_Me(t *testing.T) {
 		}
 
 		// First log in
-		req, _ := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/", nil)
+		req, _ := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url=/u/", nil)
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Fatal(err)
@@ -341,7 +341,7 @@ func TestNotionAuthFlow(t *testing.T) {
 	}
 
 	// 3. Anonymous Login to get Session
-	loginReq, _ := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
+	loginReq, _ := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
 	resp, err := client.Do(loginReq)
 	if err != nil {
 		t.Fatal(err)

@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
-	github.com/mnehpets/oneserve v0.0.0-20260116071944-d3bba180d096
+	github.com/mnehpets/oneserve v0.0.0-20260121061301-3ccfaaf2eaa2
 	golang.org/x/oauth2 v0.34.0
 )
 
