@@ -1,13 +1,14 @@
-# Spec: Session Management
+# session-management Specification
 
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change implement-oneserve-backend. Update Purpose after archive.
+## Requirements
 ### Requirement: Anonymous Login Endpoint
 The backend MUST provide an endpoint to explicitly create an anonymous session.
 
 #### Scenario: Anonymous Login with Redirect
 Given a user does not have a session
-When the user requests `GET /auth/login/anon?next_url=/u/dashboard`
+When the user requests `POST /auth/login/anon?next_url=/u/dashboard`
 Then the server establishes a new anonymous session
 And the server sets a session cookie
 And the server redirects the user to `/u/dashboard`.
@@ -17,7 +18,7 @@ The backend MUST provide an endpoint to clear the session.
 
 #### Scenario: Logout with Redirect
 Given a user has an active session
-When the user requests `GET /auth/logout?next_url=/`
+When the user requests `POST /auth/logout?next_url=/`
 Then the server invalidates the current session
 And the server clears the session cookie
 And the server redirects the user to `/`.
@@ -49,3 +50,4 @@ The backend MUST provide an endpoint to check the current session status.
 Given the backend is running
 When a user requests `GET /auth/me`
 Then the server returns a JSON response indicating if the user is logged in (anonymous or authenticated) and any relevant user data.
+
