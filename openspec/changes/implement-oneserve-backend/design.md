@@ -34,8 +34,8 @@ The backend will leverage `github.com/mnehpets/oneserve` to unify static file se
 
 ### 4. Configuration
 - Configuration (Client ID, Client Secret) will be loaded from a `.env` file and combined with OS environment variables.
-- **Implementation:** Use `ilyakaznacheev/cleanenv` to load configuration into a struct.
-- **Security Constraint:** `cleanenv.ReadConfig` parses the `.env` file directly into the struct and checks OS environment variables for overrides. It does NOT automatically export `.env` values to the process environment (no `os.Setenv`), satisfying the security requirement.
+- **Implementation:** Use `knadh/koanf/v2` to load configuration into a struct.
+- **Security Constraint:** `koanf` loads the `.env` file and environment variables without polluting the process environment. OS environment variables take precedence over `.env` file values.
 - **Permissions:** Notion permissions (Capabilities) are configured in the Notion Developer Portal, not in the code.
 
 ## Data Flow

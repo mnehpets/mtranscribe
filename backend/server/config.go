@@ -1,76 +1,81 @@
 package server
 
 import (
-	"os"
+	"fmt"
 
-	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/joho/godotenv"
+	"github.com/knadh/koanf/parsers/dotenv"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 )
 
 // Config holds the application configuration.
 type Config struct {
 	// Port is the HTTP server port.
-	Port string `env:"PORT" env-default:"8080"`
+	Port string
 
 	// SessionKey is the secret key used for session encryption (32 bytes hex-encoded for ChaCha20-Poly1305).
-	SessionKey string `env:"SESSION_KEY" env-required:"true"`
+	SessionKey string
 
 	// NotionClientID is the Notion OAuth client ID.
-	NotionClientID string `env:"NOTION_CLIENT_ID" env-required:"true"`
+	NotionClientID string
 
 	// NotionClientSecret is the Notion OAuth client secret.
-	NotionClientSecret string `env:"NOTION_CLIENT_SECRET" env-required:"true"`
+	NotionClientSecret string
 
 	// PublicURL is the public base URL of the application (e.g., "http://localhost:8080").
-	PublicURL string `env:"PUBLIC_URL" env-default:"http://localhost:8080"`
+	PublicURL string
 
 	// FrontendDir is the directory containing the frontend build artifacts.
-	FrontendDir string `env:"FRONTEND_DIR" env-default:"../frontend/dist"`
+	FrontendDir string
 }
 
 // LoadConfig loads configuration from a .env file (if present) and environment variables.
 // OS environment variables take precedence over .env file values.
 // This function does NOT pollute the process environment with .env values.
 func LoadConfig(envFile string) (*Config, error) {
-	var cfg Config
+	k := koanf.New(".")
 
-	// First, try to read the .env file without loading it into the environment
-	envMap, err := godotenv.Read(envFile)
-	if err != nil {
-		// If file doesn't exist or can't be read, just use OS environment
-		if err := cleanenv.ReadEnv(&cfg); err != nil {
-			return nil, err
-		}
-		return &cfg, nil
+	// Load from .env file first (if it exists)
+	// The file provider doesn't pollute the process environment
+	if err := k.Load(file.Provider(envFile), dotenv.Parser()); err != nil {
+		// File might not exist, which is okay - we'll use OS env and defaults
 	}
 
-	// Temporarily set environment variables from the .env file
-	// but only if they're not already set in the OS environment
-	originalEnv := make(map[string]string)
-	keysToUnset := make([]string, 0)
-
-	for key, value := range envMap {
-		if osValue, exists := os.LookupEnv(key); exists {
-			// OS env takes precedence - keep the original
-			originalEnv[key] = osValue
-		} else {
-			// Mark this key for unsetting later
-			keysToUnset = append(keysToUnset, key)
-			os.Setenv(key, value)
-		}
+	// Load from OS environment (takes precedence over .env file)
+	// The env provider reads from os.Environ() but doesn't modify it
+	if err := k.Load(env.Provider("", ".", nil), nil); err != nil {
+		return nil, fmt.Errorf("error loading environment variables: %w", err)
 	}
 
-	// Read configuration from environment
-	err = cleanenv.ReadEnv(&cfg)
-
-	// Clean up: unset the keys we added from .env file
-	for _, key := range keysToUnset {
-		os.Unsetenv(key)
+	// Unmarshal into config struct with defaults
+	cfg := &Config{
+		Port:               getStringWithDefault(k, "PORT", "8080"),
+		SessionKey:         k.String("SESSION_KEY"),
+		NotionClientID:     k.String("NOTION_CLIENT_ID"),
+		NotionClientSecret: k.String("NOTION_CLIENT_SECRET"),
+		PublicURL:          getStringWithDefault(k, "PUBLIC_URL", "http://localhost:8080"),
+		FrontendDir:        getStringWithDefault(k, "FRONTEND_DIR", "../frontend/dist"),
 	}
 
-	if err != nil {
-		return nil, err
+	// Validate required fields
+	if cfg.SessionKey == "" {
+		return nil, fmt.Errorf("SESSION_KEY is required")
+	}
+	if cfg.NotionClientID == "" {
+		return nil, fmt.Errorf("NOTION_CLIENT_ID is required")
+	}
+	if cfg.NotionClientSecret == "" {
+		return nil, fmt.Errorf("NOTION_CLIENT_SECRET is required")
 	}
 
-	return &cfg, nil
+	return cfg, nil
+}
+
+// getStringWithDefault returns the string value for a key, or a default if not found.
+func getStringWithDefault(k *koanf.Koanf, key, defaultValue string) string {
+	if v := k.String(key); v != "" {
+		return v
+	}
+	return defaultValue
 }

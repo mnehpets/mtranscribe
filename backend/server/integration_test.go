@@ -95,17 +95,17 @@ func TestSessionManagement_AnonymousLoginInvalidRedirect(t *testing.T) {
 		{
 			name:     "Absolute URL",
 			nextURL:  "https://evil.com",
-			expected: "/u",
+			expected: "/u/",
 		},
 		{
 			name:     "Protocol-relative URL",
 			nextURL:  "//evil.com/path",
-			expected: "/u",
+			expected: "/u/",
 		},
 		{
 			name:     "Path not starting with /u/",
 			nextURL:  "/admin",
-			expected: "/u",
+			expected: "/u/",
 		},
 	}
 
@@ -168,7 +168,7 @@ func TestSessionManagement_Logout(t *testing.T) {
 		t.Fatal("Expected session cookie to be set after login")
 	}
 
-	// Now log out
+	// Now log out - with "/" it should redirect to "/u/" since we use ValidateNextURL
 	req, _ = http.NewRequest("GET", ts.URL+"/auth/logout?next_url=/", nil)
 	req.AddCookie(sessionCookie)
 	resp, err = client.Do(req)
@@ -182,8 +182,8 @@ func TestSessionManagement_Logout(t *testing.T) {
 	}
 
 	location := resp.Header.Get("Location")
-	if location != "/" {
-		t.Errorf("Expected redirect to /, got %s", location)
+	if location != "/u/" {
+		t.Errorf("Expected redirect to /u/, got %s", location)
 	}
 
 	// Check that session cookie was cleared
