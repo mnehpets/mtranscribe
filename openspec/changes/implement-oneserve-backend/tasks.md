@@ -15,7 +15,7 @@
 - [x] Implement unit tests for `next_url` validation logic.
 - [x] Implement integration tests for Session Management (`/auth/login/anon`, `/auth/logout`, `/auth/me`).
 - [x] Implement integration tests for Static Serving (redirects, SPA fallback, 404s).
-- [ ] Implement integration tests for Notion Auth flow (mocking external calls).
+- [x] Implement integration tests for Notion Auth flow (mocking external calls).
 - [x] Update `backend/main.go` to use the new server setup.
 - [x] Verify frontend is served correctly at `http://localhost:8080`.
 - [x] Verify Notion login flow redirects correctly (mock or real creds).

@@ -26,6 +26,12 @@ type Config struct {
 	// PublicURL is the public base URL of the application (e.g., "http://localhost:8080").
 	PublicURL string `koanf:"PUBLIC_URL"`
 
+	// NotionAuthURL is the Notion OAuth authorization URL.
+	NotionAuthURL string `koanf:"NOTION_AUTH_URL"`
+
+	// NotionTokenURL is the Notion OAuth token URL.
+	NotionTokenURL string `koanf:"NOTION_TOKEN_URL"`
+
 	// FrontendDir is the directory containing the frontend build artifacts.
 	FrontendDir string `koanf:"FRONTEND_DIR"`
 }
@@ -50,9 +56,11 @@ func LoadConfig(envFile string) (*Config, error) {
 
 	// Unmarshal into config struct with defaults
 	cfg := &Config{
-		Port:        "8080",
-		PublicURL:   "http://localhost:8080",
-		FrontendDir: "../frontend/dist",
+		Port:           "8080",
+		PublicURL:      "http://localhost:8080",
+		FrontendDir:    "../frontend/dist",
+		NotionAuthURL:  "https://api.notion.com/v1/oauth/authorize",
+		NotionTokenURL: "https://api.notion.com/v1/oauth/token",
 	}
 
 	if err := k.Unmarshal("", cfg); err != nil {
