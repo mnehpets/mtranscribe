@@ -27,6 +27,7 @@ type NotionToken struct {
 type Server struct {
 	cfg              *Config
 	sessionProcessor endpoint.Processor
+	securityProcessor endpoint.Processor
 	authHandler      http.Handler
 	mux              *http.ServeMux
 }
@@ -49,6 +50,13 @@ func New(cfg *Config) (*Server, error) {
 
 	// Determine if we should use secure cookies based on PUBLIC_URL scheme
 	secureCookies := strings.HasPrefix(cfg.PublicURL, "https://")
+
+	// Setup security headers middleware
+	var securityOpts []middleware.SecurityHeadersOption
+	if !secureCookies {
+		securityOpts = append(securityOpts, middleware.WithoutHSTS())
+	}
+	s.securityProcessor = middleware.NewSecurityHeadersProcessor(securityOpts...)
 
 	// Setup session middleware with CSRF protection (SameSite=Lax)
 	s.sessionProcessor, err = middleware.NewSessionProcessor(
@@ -108,6 +116,9 @@ func (s *Server) setupNotionAuth(sessionKey []byte, secureCookies bool) error {
 		return fmt.Errorf("failed to create auth cookie: %w", err)
 	}
 
+	// Create processors slice
+	processors := []endpoint.Processor{s.securityProcessor, s.sessionProcessor}
+
 	// Create auth handler
 	s.authHandler = auth.NewHandler(
 		registry,
@@ -116,7 +127,7 @@ func (s *Server) setupNotionAuth(sessionKey []byte, secureCookies bool) error {
 		"/auth",
 		auth.WithPreAuthHook(s.preAuthHook),
 		auth.WithSuccessEndpoint(s.authSuccessEndpoint),
-		auth.WithProcessors(s.sessionProcessor),
+		auth.WithProcessors(processors...),
 	)
 
 	return nil
@@ -169,8 +180,6 @@ func (s *Server) authSuccessEndpoint(w http.ResponseWriter, r *http.Request, par
 		return nil, endpoint.Error(http.StatusInternalServerError, "failed to store token", err)
 	}
 
-	log.Printf("Notion OAuth successful for session %s", session.ID())
-
 	// Redirect to next_url or default
 	nextURL := ValidateNextURL(params.NextURL)
 	return &endpoint.RedirectRenderer{URL: nextURL, Status: http.StatusFound}, nil
@@ -178,22 +187,24 @@ func (s *Server) authSuccessEndpoint(w http.ResponseWriter, r *http.Request, par
 
 // setupRoutes configures all HTTP routes.
 func (s *Server) setupRoutes() {
+	processors := []endpoint.Processor{s.securityProcessor, s.sessionProcessor}
+
 	// Static file serving endpoints - register first with most specific patterns
 	// 1. Root redirect
-	s.mux.HandleFunc("GET /{$}", endpoint.HandleFunc(s.rootRedirectEndpoint))
+	s.mux.HandleFunc("GET /{$}", endpoint.HandleFunc(s.rootRedirectEndpoint, processors...))
 	// 2. Frontend endpoint - always serves index.html for /u/*; /u will redirect to /u/
-	s.mux.HandleFunc("GET /u/{path...}", endpoint.HandleFunc(s.frontendEndpoint))
+	s.mux.HandleFunc("GET /u/{path...}", endpoint.HandleFunc(s.frontendEndpoint, processors...))
 
 	// Auth routes (managed by auth handler)
 	s.mux.Handle("/auth/", s.authHandler)
 
 	// Session management routes (override auth handler for these specific paths)
-	s.mux.Handle("GET /auth/login/anon", endpoint.HandleFunc(s.loginAnonEndpoint, s.sessionProcessor))
-	s.mux.Handle("GET /auth/logout", endpoint.HandleFunc(s.logoutEndpoint, s.sessionProcessor))
-	s.mux.Handle("GET /auth/me", endpoint.HandleFunc(s.meEndpoint, s.sessionProcessor))
+	s.mux.Handle("POST /auth/login/anon", endpoint.HandleFunc(s.loginAnonEndpoint, processors...))
+	s.mux.Handle("POST /auth/logout", endpoint.HandleFunc(s.logoutEndpoint, processors...))
+	s.mux.Handle("GET /auth/me", endpoint.HandleFunc(s.meEndpoint, processors...))
 
 	// 3. File system endpoint - serves static assets (catch-all for everything else)
-	s.mux.HandleFunc("/", endpoint.HandleFunc(s.fileSystemEndpoint))
+	s.mux.HandleFunc("/", endpoint.HandleFunc(s.fileSystemEndpoint, processors...))
 }
 
 // loginAnonEndpoint creates an anonymous session.
@@ -210,8 +221,6 @@ func (s *Server) loginAnonEndpoint(w http.ResponseWriter, r *http.Request, param
 		return nil, endpoint.Error(http.StatusInternalServerError, "failed to create session", err)
 	}
 
-	log.Printf("Anonymous login: session %s", session.ID())
-
 	// Validate and redirect
 	nextURL := ValidateNextURL(params.NextURL)
 	return &endpoint.RedirectRenderer{URL: nextURL, Status: http.StatusFound}, nil
@@ -223,7 +232,6 @@ func (s *Server) logoutEndpoint(w http.ResponseWriter, r *http.Request, params s
 }) (endpoint.Renderer, error) {
 	session, ok := middleware.SessionFromContext(r.Context())
 	if ok {
-		log.Printf("Logout: session %s", session.ID())
 		session.Logout()
 	}
 
