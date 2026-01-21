@@ -14,7 +14,7 @@ func setupTestServer(t *testing.T) *server.Server {
 
 	cfg := &server.Config{
 		Port:               "8080",
-		SessionKey:         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		SessionKey:         "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=",
 		NotionClientID:     "test_client_id",
 		NotionClientSecret: "test_client_secret",
 		PublicURL:          "http://localhost:8080",

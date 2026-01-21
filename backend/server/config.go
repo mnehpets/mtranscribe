@@ -12,22 +12,22 @@ import (
 // Config holds the application configuration.
 type Config struct {
 	// Port is the HTTP server port.
-	Port string
+	Port string `koanf:"PORT"`
 
-	// SessionKey is the secret key used for session encryption (32 bytes hex-encoded for ChaCha20-Poly1305).
-	SessionKey string
+	// SessionKey is the secret key used for session encryption (32 bytes base64url-encoded for ChaCha20-Poly1305).
+	SessionKey string `koanf:"SESSION_KEY"`
 
 	// NotionClientID is the Notion OAuth client ID.
-	NotionClientID string
+	NotionClientID string `koanf:"NOTION_CLIENT_ID"`
 
 	// NotionClientSecret is the Notion OAuth client secret.
-	NotionClientSecret string
+	NotionClientSecret string `koanf:"NOTION_CLIENT_SECRET"`
 
 	// PublicURL is the public base URL of the application (e.g., "http://localhost:8080").
-	PublicURL string
+	PublicURL string `koanf:"PUBLIC_URL"`
 
 	// FrontendDir is the directory containing the frontend build artifacts.
-	FrontendDir string
+	FrontendDir string `koanf:"FRONTEND_DIR"`
 }
 
 // LoadConfig loads configuration from a .env file (if present) and environment variables.
@@ -50,12 +50,13 @@ func LoadConfig(envFile string) (*Config, error) {
 
 	// Unmarshal into config struct with defaults
 	cfg := &Config{
-		Port:               getStringWithDefault(k, "PORT", "8080"),
-		SessionKey:         k.String("SESSION_KEY"),
-		NotionClientID:     k.String("NOTION_CLIENT_ID"),
-		NotionClientSecret: k.String("NOTION_CLIENT_SECRET"),
-		PublicURL:          getStringWithDefault(k, "PUBLIC_URL", "http://localhost:8080"),
-		FrontendDir:        getStringWithDefault(k, "FRONTEND_DIR", "../frontend/dist"),
+		Port:        "8080",
+		PublicURL:   "http://localhost:8080",
+		FrontendDir: "../frontend/dist",
+	}
+
+	if err := k.Unmarshal("", cfg); err != nil {
+		return nil, fmt.Errorf("error unmarshalling config: %w", err)
 	}
 
 	// Validate required fields
@@ -70,12 +71,4 @@ func LoadConfig(envFile string) (*Config, error) {
 	}
 
 	return cfg, nil
-}
-
-// getStringWithDefault returns the string value for a key, or a default if not found.
-func getStringWithDefault(k *koanf.Koanf, key, defaultValue string) string {
-	if v := k.String(key); v != "" {
-		return v
-	}
-	return defaultValue
 }

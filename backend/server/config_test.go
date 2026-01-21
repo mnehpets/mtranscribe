@@ -12,7 +12,7 @@ func TestLoadConfig_EnvFilePrecedence(t *testing.T) {
 	envFile := filepath.Join(tmpDir, ".env")
 
 	// Create a .env file with test values
-	envContent := `SESSION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+	envContent := `SESSION_KEY=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=
 NOTION_CLIENT_ID=env_file_id
 NOTION_CLIENT_SECRET=env_file_secret
 PORT=9999
@@ -48,7 +48,7 @@ PORT=9999
 	t.Run("OSEnvPrecedence", func(t *testing.T) {
 		// Set OS environment variables
 		os.Setenv("NOTION_CLIENT_ID", "os_env_id")
-		os.Setenv("SESSION_KEY", "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210")
+		os.Setenv("SESSION_KEY", "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=")
 		defer func() {
 			os.Unsetenv("NOTION_CLIENT_ID")
 			os.Unsetenv("SESSION_KEY")
@@ -73,7 +73,7 @@ PORT=9999
 
 func TestLoadConfig_MissingFile(t *testing.T) {
 	// Set required env vars in OS environment
-	os.Setenv("SESSION_KEY", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+	os.Setenv("SESSION_KEY", "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=")
 	os.Setenv("NOTION_CLIENT_ID", "test_id")
 	os.Setenv("NOTION_CLIENT_SECRET", "test_secret")
 	defer func() {
