@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-4 bg-gray-200 rounded overflow-hidden">
+  <div class="w-full bg-gray-200 rounded overflow-hidden">
     <div
       class="h-full bg-green-500 transition-all duration-100"
       :style="{ width: `${volume}%` }"

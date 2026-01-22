@@ -33,6 +33,9 @@
         </fwb-navbar-link>
       </fwb-navbar-collapse>
     </template>
+    <template #right-side>
+      <AudioCaptureControl />
+    </template>
   </fwb-navbar>
 </template>
 
@@ -43,6 +46,7 @@ import {
   FwbNavbarLink,
 } from 'flowbite-vue'
 import { useRoute } from 'vue-router'
+import AudioCaptureControl from './AudioCaptureControl.vue'
 
 const route = useRoute()
 
