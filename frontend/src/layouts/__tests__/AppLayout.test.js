@@ -29,6 +29,6 @@ describe('AppLayout', () => {
     })
 
     expect(wrapper.text()).toContain('mtranscribe')
-    expect(wrapper.find('header').exists()).toBe(true)
+    expect(wrapper.find('nav').exists()).toBe(true)
   })
 })
