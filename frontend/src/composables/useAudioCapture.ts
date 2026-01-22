@@ -7,6 +7,9 @@ export function useAudioCapture(
   transcriberFactory: TranscriberFactory,
   transcript: Ref<Transcript>
 ) {
+  // Note: The controller captures the initial transcript value. To switch transcripts,
+  // explicitly call setTranscript() rather than relying on reactive updates.
+  // This ensures proper cleanup of the previous transcriber and capture session.
   const controller = new AudioCaptureController(transcriberFactory, transcript.value)
   
   const state = ref<CaptureState>(controller.state)
