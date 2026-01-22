@@ -5,26 +5,42 @@
       {{ transcript.title }}
     </h1>
 
-    <!-- Notes Section (Collapsible) -->
-    <details v-if="transcript.notes" class="mb-6">
-      <summary class="cursor-pointer text-gray-700 font-semibold hover:text-gray-900">
-        Notes
-      </summary>
-      <div class="mt-2 text-gray-600">
-        {{ transcript.notes }}
-      </div>
-    </details>
+    <!-- Summary and Notes Accordion -->
+    <FwbAccordion flush v-if="transcript.summary || transcript.notes" class="mb-6">
+      <FwbAccordionPanel v-if="transcript.summary">
+        <FwbAccordionHeader>Summary</FwbAccordionHeader>
+        <FwbAccordionContent>
+          <div class="text-gray-700 italic">
+            {{ transcript.summary }}
+          </div>
+        </FwbAccordionContent>
+      </FwbAccordionPanel>
+      
+      <FwbAccordionPanel v-if="transcript.notes">
+        <FwbAccordionHeader>Notes</FwbAccordionHeader>
+        <FwbAccordionContent>
+          <div class="text-gray-600">
+            {{ transcript.notes }}
+          </div>
+        </FwbAccordionContent>
+      </FwbAccordionPanel>
+    </FwbAccordion>
 
     <!-- Turns Container -->
     <div class="turns-container space-y-2">
       <div 
         v-for="(turn, index) in transcript.turns" 
         :key="index" 
-        class="turn"
+        class="turn flex gap-3"
       >
-        <span 
-          :class="['font-bold', getSpeakerColor(turn.speaker)]"
-        >{{ turn.speaker }}</span>: {{ turn.text }}
+        <div class="text-xs text-gray-400 font-mono pt-1 select-none">
+          {{ formatTime(turn.timestamp) }}
+        </div>
+        <div>
+          <span 
+            :class="['font-bold', getSpeakerColor(turn.speaker)]"
+          >{{ turn.speaker }}</span>: {{ turn.text }}
+        </div>
       </div>
     </div>
   </div>
@@ -32,12 +48,22 @@
 
 <script setup lang="ts">
 import type { Transcript } from '../Transcript'
+import {
+  FwbAccordion,
+  FwbAccordionPanel,
+  FwbAccordionHeader,
+  FwbAccordionContent,
+} from 'flowbite-vue'
 
 interface Props {
   transcript: Transcript
 }
 
 defineProps<Props>()
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+}
 
 /**
  * Deterministic color assignment for speaker names

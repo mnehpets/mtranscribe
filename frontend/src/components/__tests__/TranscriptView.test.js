@@ -3,6 +3,14 @@ import { mount } from '@vue/test-utils'
 import TranscriptView from '../TranscriptView.vue'
 import { Transcript } from '../../Transcript'
 
+// Stubs for Flowbite components to ensure slots are rendered without relying on library implementation
+const stubs = {
+  FwbAccordion: { template: '<div><slot /></div>' },
+  FwbAccordionPanel: { template: '<div><slot /></div>' },
+  FwbAccordionHeader: { template: '<div><slot /></div>' },
+  FwbAccordionContent: { template: '<div><slot /></div>' }
+}
+
 describe('TranscriptView', () => {
   it('renders a list of turns', () => {
     const transcript = new Transcript('Test Title', '', '', [
@@ -124,21 +132,28 @@ describe('TranscriptView', () => {
     expect(titleElement.exists()).toBe(false)
   })
 
-  it('displays notes in a collapsible section', () => {
+  it('displays notes in the accordion', () => {
     const transcript = new Transcript('', '', 'Action items: Review the proposal', [])
     
     const wrapper = mount(TranscriptView, {
-      props: { transcript }
+      props: { transcript },
+      global: { stubs }
     })
     
-    const detailsElement = wrapper.find('details')
-    expect(detailsElement.exists()).toBe(true)
-    
-    const summaryElement = wrapper.find('summary')
-    expect(summaryElement.exists()).toBe(true)
-    expect(summaryElement.text()).toBe('Notes')
-    
+    expect(wrapper.text()).toContain('Notes')
     expect(wrapper.text()).toContain('Action items: Review the proposal')
+  })
+
+  it('displays summary when provided', () => {
+    const transcript = new Transcript('', 'This is a summary', '', [])
+    
+    const wrapper = mount(TranscriptView, {
+      props: { transcript },
+      global: { stubs }
+    })
+    
+    expect(wrapper.text()).toContain('Summary')
+    expect(wrapper.text()).toContain('This is a summary')
   })
 
   it('does not display notes section when not provided', () => {
@@ -148,8 +163,21 @@ describe('TranscriptView', () => {
       props: { transcript }
     })
     
-    const detailsElement = wrapper.find('details')
-    expect(detailsElement.exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Notes')
+  })
+
+  it('displays timestamp for each turn', () => {
+    // Create a date that will format predictably
+    const date = new Date('2023-01-01T12:34:56')
+    const transcript = new Transcript('', '', '', [
+      { speaker: 'Alice', text: 'Hello', timestamp: date, interim: '' }
+    ])
+    
+    const wrapper = mount(TranscriptView, {
+      props: { transcript }
+    })
+    
+    expect(wrapper.text()).toContain('12:34:56')
   })
 
   it('renders empty transcript without errors', () => {
