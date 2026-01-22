@@ -1,41 +1,48 @@
 <template>
-  <header class="bg-white border-b border-gray-200">
-    <div class="px-4 mx-auto max-w-7xl">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center">
-          <h1 class="text-xl font-bold text-gray-900">mtranscribe</h1>
-        </div>
-        <nav class="flex space-x-1">
-          <RouterLink
-            to="/u/"
-            class="px-4 py-2 text-sm font-medium rounded-t-lg"
-            :class="isActive('/u/') ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
-          >
-            Capture
-          </RouterLink>
-          <RouterLink
-            to="/u/export"
-            class="px-4 py-2 text-sm font-medium rounded-t-lg"
-            :class="isActive('/u/export') ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
-          >
-            Export
-          </RouterLink>
-          <RouterLink
-            to="/u/settings"
-            class="px-4 py-2 text-sm font-medium rounded-t-lg"
-            :class="isActive('/u/settings') ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
-          >
-            Settings
-          </RouterLink>
-        </nav>
+  <fwb-navbar>
+    <template #logo>
+      <div class="flex items-center">
+        <h1 class="text-xl font-bold text-gray-900 dark:text-white">mtranscribe</h1>
       </div>
-    </div>
-  </header>
+    </template>
+    <template #default="{ isShowMenu }">
+      <fwb-navbar-collapse :is-show-menu="isShowMenu">
+        <fwb-navbar-link
+          component="router-link"
+          link-attr="to"
+          link="/u/"
+          :is-active="isActive('/u/')"
+        >
+          Capture
+        </fwb-navbar-link>
+        <fwb-navbar-link
+          component="router-link"
+          link-attr="to"
+          link="/u/export"
+          :is-active="isActive('/u/export')"
+        >
+          Export
+        </fwb-navbar-link>
+        <fwb-navbar-link
+          component="router-link"
+          link-attr="to"
+          link="/u/settings"
+          :is-active="isActive('/u/settings')"
+        >
+          Settings
+        </fwb-navbar-link>
+      </fwb-navbar-collapse>
+    </template>
+  </fwb-navbar>
 </template>
 
 <script setup>
+import {
+  FwbNavbar,
+  FwbNavbarCollapse,
+  FwbNavbarLink,
+} from 'flowbite-vue'
 import { useRoute } from 'vue-router'
-import { computed } from 'vue'
 
 const route = useRoute()
 

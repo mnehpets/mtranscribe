@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { FwbNavbarLink } from 'flowbite-vue'
 import AppHeader from '../AppHeader.vue'
 import AppLayout from '../../layouts/AppLayout.vue'
 import CaptureView from '../../views/CaptureView.vue'
@@ -42,7 +43,7 @@ describe('AppHeader', () => {
     expect(wrapper.text()).toContain('Settings')
   })
 
-  it('highlights the active tab on Capture route', async () => {
+  it('sets isActive prop on Capture route', async () => {
     const router = createRouterForTest()
     router.push('/u/')
     await router.isReady()
@@ -53,11 +54,11 @@ describe('AppHeader', () => {
       }
     })
 
-    const captureLink = wrapper.findAll('a').find(link => link.text() === 'Capture')
-    expect(captureLink.classes()).toContain('text-blue-600')
+    const captureLink = wrapper.findAllComponents(FwbNavbarLink).find(c => c.text().includes('Capture'))
+    expect(captureLink.props('isActive')).toBe(true)
   })
 
-  it('highlights the active tab on Export route', async () => {
+  it('sets isActive prop on Export route', async () => {
     const router = createRouterForTest()
     router.push('/u/export')
     await router.isReady()
@@ -68,7 +69,7 @@ describe('AppHeader', () => {
       }
     })
 
-    const exportLink = wrapper.findAll('a').find(link => link.text() === 'Export')
-    expect(exportLink.classes()).toContain('text-blue-600')
+    const exportLink = wrapper.findAllComponents(FwbNavbarLink).find(c => c.text().includes('Export'))
+    expect(exportLink.props('isActive')).toBe(true)
   })
 })
