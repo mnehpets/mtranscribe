@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, type Ref, onUnmounted } from 'vue'
 import { AudioCaptureController, type CaptureState } from '../AudioCaptureController'
 import type { TranscriberFactory } from '../Transcriber'
 import type { Transcript } from '../Transcript'
@@ -50,6 +50,10 @@ export function useAudioCapture(
     state.value = controller.state
     stream.value = controller.stream
   }
+
+  onUnmounted(() => {
+    stop()
+  })
 
   return {
     state,
