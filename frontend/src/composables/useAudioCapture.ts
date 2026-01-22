@@ -5,8 +5,10 @@ import type { Transcript } from '../Transcript'
 
 export function useAudioCapture(
   transcriberFactory: TranscriberFactory,
-  transcript: Ref<Transcript>
+  transcript: Ref<Transcript>,
+  options: { autoCleanup?: boolean } = {}
 ) {
+  const { autoCleanup = true } = options
   // Note: The controller captures the initial transcript value. To switch transcripts,
   // explicitly call setTranscript() rather than relying on reactive updates.
   // This ensures proper cleanup of the previous transcriber and capture session.
@@ -51,9 +53,11 @@ export function useAudioCapture(
     stream.value = controller.stream
   }
 
-  onUnmounted(() => {
-    stop()
-  })
+  if (autoCleanup) {
+    onUnmounted(() => {
+      stop()
+    })
+  }
 
   return {
     state,

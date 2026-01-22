@@ -288,4 +288,29 @@ describe('AudioCaptureController', () => {
       expect(mockTranscriber.sendAudio).toHaveBeenCalledWith(mockBlob)
     })
   })
+
+  describe('track state management', () => {
+    it('should disable audio tracks when muted', async () => {
+      await controller.start()
+      controller.mute()
+      
+      const stream = controller.stream
+      expect(stream).not.toBeNull()
+      const tracks = stream!.getAudioTracks()
+      expect(tracks.length).toBeGreaterThan(0)
+      expect(tracks[0].enabled).toBe(false)
+    })
+
+    it('should enable audio tracks when unmuted', async () => {
+      await controller.start()
+      controller.mute()
+      controller.unmute()
+      
+      const stream = controller.stream
+      expect(stream).not.toBeNull()
+      const tracks = stream!.getAudioTracks()
+      expect(tracks.length).toBeGreaterThan(0)
+      expect(tracks[0].enabled).toBe(true)
+    })
+  })
 })
