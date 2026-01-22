@@ -1,6 +1,8 @@
 import type { Transcriber, TranscriberFactory } from './Transcriber'
 import type { Transcript } from './Transcript'
 
+const TIME_SLICE_MS = 250
+
 export type CaptureState = 'idle' | 'capturing' | 'muted'
 
 export class AudioCaptureController {
@@ -46,8 +48,8 @@ export class AudioCaptureController {
         }
       }
 
-      // Start recording with 100ms timeslices
-      this._mediaRecorder.start(100)
+      // Start recording with defined timeslices
+      this._mediaRecorder.start(TIME_SLICE_MS)
       this._state = 'capturing'
     } catch (error) {
       // Clean up on error
@@ -71,6 +73,9 @@ export class AudioCaptureController {
     }
 
     this._state = 'muted'
+    if (this._stream) {
+      this._stream.getAudioTracks().forEach(track => { track.enabled = false })
+    }
   }
 
   unmute(): void {
@@ -79,6 +84,9 @@ export class AudioCaptureController {
     }
 
     this._state = 'capturing'
+    if (this._stream) {
+      this._stream.getAudioTracks().forEach(track => { track.enabled = true })
+    }
   }
 
   setTranscript(transcript: Transcript): void {

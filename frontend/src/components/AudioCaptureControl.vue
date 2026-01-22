@@ -8,33 +8,33 @@
           size="sm"
           pill
           square
-          :disabled="status === 'idle'"
+          :disabled="state === 'idle'"
           @click="togglePause"
-          :title="status === 'paused' ? 'Resume Recording' : 'Pause Recording'"
+          :title="state === 'muted' ? 'Resume Recording' : 'Pause Recording'"
         >
-          <Icon :icon="status === 'paused' ? 'mdi:play' : 'mdi:pause'" class="w-5 h-5" />
+          <Icon :icon="state === 'muted' ? 'mdi:play' : 'mdi:pause'" class="w-5 h-5" />
         </fwb-button>
 
         <!-- Record/Stop Button -->
         <fwb-button
-          :color="status === 'idle' ? 'green' : 'red'"
+          :color="state === 'idle' ? 'green' : 'red'"
           size="sm"
           pill
           square
           @click="toggleRecording"
-          :title="status === 'idle' ? 'Start Recording' : 'Stop Recording'"
+          :title="state === 'idle' ? 'Start Recording' : 'Stop Recording'"
         >
-          <Icon :icon="status === 'idle' ? 'mdi:microphone' : 'mdi:stop'" class="w-5 h-5" />
+          <Icon :icon="state === 'idle' ? 'mdi:microphone' : 'mdi:stop'" class="w-5 h-5" />
         </fwb-button>
       </div>
 
       <!-- Status Indicator -->
       <div class="flex items-center gap-2 text-sm font-medium min-w-[4rem] justify-end">
-        <span v-if="status === 'recording'" class="flex items-center text-red-600 animate-pulse">
+        <span v-if="state === 'capturing'" class="flex items-center text-red-600 animate-pulse">
           <span class="w-2 h-2 mr-1 bg-red-600 rounded-full"></span>
           REC
         </span>
-        <span v-else-if="status === 'paused'" class="text-yellow-600">
+        <span v-else-if="state === 'muted'" class="text-yellow-600">
           PAUSED
         </span>
         <span v-else class="text-gray-400 dark:text-gray-500">
@@ -44,68 +44,34 @@
     </div>
 
     <VuMeter
-      :media-stream="mediaStream"
-      :enabled="status !== 'idle'"
+      :media-stream="stream"
+      :enabled="state !== 'idle'"
       class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import { FwbButton } from 'flowbite-vue'
 import { Icon } from '@iconify/vue'
 import VuMeter from './VuMeter.vue'
+import { useRecordingSession } from '../composables/useRecordingSession'
 
-// Defines the possible states of the capture controller
-type CaptureStatus = 'idle' | 'recording' | 'paused'
-
-const status = ref<CaptureStatus>('idle')
-const mediaStream = ref<MediaStream | null>(null)
+const { state, stream, start, stop, mute, unmute } = useRecordingSession()
 
 const toggleRecording = async () => {
-  if (status.value === 'idle') {
-    await startRecording()
+  if (state.value === 'idle') {
+    await start()
   } else {
-    stopRecording()
+    stop()
   }
 }
 
 const togglePause = () => {
-  if (status.value === 'recording') {
-    pauseRecording()
-  } else if (status.value === 'paused') {
-    resumeRecording()
+  if (state.value === 'capturing') {
+    mute()
+  } else if (state.value === 'muted') {
+    unmute()
   }
-}
-
-const startRecording = async () => {
-  try {
-    // In a real implementation, this would call the controller
-    // For now, we simulate getting a stream
-    mediaStream.value = await navigator.mediaDevices.getUserMedia({ audio: true })
-    status.value = 'recording'
-  } catch (err) {
-    console.error('Failed to start recording:', err)
-  }
-}
-
-const pauseRecording = () => {
-  status.value = 'paused'
-  // Controller logic here
-}
-
-const resumeRecording = () => {
-  status.value = 'recording'
-  // Controller logic here
-}
-
-const stopRecording = () => {
-  status.value = 'idle'
-  if (mediaStream.value) {
-    mediaStream.value.getTracks().forEach(track => track.stop())
-    mediaStream.value = null
-  }
-  // Controller logic here
 }
 </script>
