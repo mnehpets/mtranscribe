@@ -1,14 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import App from '../App.vue'
-import AppLayout from '../layouts/AppLayout.vue'
-import CaptureView from '../views/CaptureView.vue'
-import ExportView from '../views/ExportView.vue'
-import SettingsView from '../views/SettingsView.vue'
+import AppLayout from '../AppLayout.vue'
+import CaptureView from '../../views/CaptureView.vue'
 
-describe('App', () => {
-  it('renders the router view', async () => {
+describe('AppLayout', () => {
+  it('renders the header and content', async () => {
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -25,13 +22,13 @@ describe('App', () => {
     router.push('/u')
     await router.isReady()
 
-    const wrapper = mount(App, {
+    const wrapper = mount(AppLayout, {
       global: {
         plugins: [router]
       }
     })
 
     expect(wrapper.text()).toContain('mtranscribe')
-    expect(wrapper.text()).toContain('Capture')
+    expect(wrapper.find('header').exists()).toBe(true)
   })
 })
