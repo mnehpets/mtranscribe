@@ -40,11 +40,9 @@ import { computed } from 'vue'
 const route = useRoute()
 
 const isActive = (path) => {
-  return computed(() => {
-    if (path === '/u/') {
-      return route.path === '/u/' || route.path === '/u'
-    }
-    return route.path.startsWith(path)
-  }).value
+  if (path === '/u/') {
+    return route.path === '/u/' || route.path === '/u'
+  }
+  return route.path.startsWith(path)
 }
 </script>
