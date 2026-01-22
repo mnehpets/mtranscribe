@@ -37,7 +37,7 @@ interface Props {
   transcript: Transcript
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 /**
  * Deterministic color assignment for speaker names
