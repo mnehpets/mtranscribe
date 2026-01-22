@@ -30,19 +30,20 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
-  transcript: {
-    type: Object,
-    required: true
-  }
-})
+<script setup lang="ts">
+import type { Transcript } from '../Transcript'
+
+interface Props {
+  transcript: Transcript
+}
+
+const props = defineProps<Props>()
 
 /**
  * Deterministic color assignment for speaker names
  * Uses a hash function to consistently map speaker names to colors
  */
-function getSpeakerColor(name) {
+function getSpeakerColor(name: string): string {
   const colors = [
     'text-red-600',
     'text-blue-600',
