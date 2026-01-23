@@ -42,13 +42,14 @@ export class DeepgramTranscriber {
 
     // Establish live transcription connection
     this.connection = deepgram.listen.live({
-      model: 'nova-2',
+      model: 'nova-3',
       language: 'en',
       smart_format: true,
       interim_results: true,
       utterance_end_ms: 1000,
+      diarize: true,
       // Opt-out of model improvement program for privacy
-      tier: 'nova'
+      mip_opt_out: true
     });
 
     // Set up event handlers
@@ -87,15 +88,48 @@ export class DeepgramTranscriber {
       const result = data.channel?.alternatives?.[0];
       if (!result) return;
 
-      const text = result.transcript;
-      if (!text) return;
+      const words = result.words || [];
 
       if (data.is_final) {
-        // Final result - append to stable text
-        transcript.appendStable(text + ' ', 'transcribed');
+        if (words.length > 0) {
+          let currentSpeaker: string | undefined;
+          let currentText = "";
+
+          for (const word of words) {
+            const speaker = typeof word.speaker === 'number' ? `Speaker ${word.speaker}` : undefined;
+            const w = word.punctuated_word || word.word;
+
+            if (speaker !== currentSpeaker) {
+              if (currentSpeaker !== undefined && currentText) {
+                transcript.appendStable(currentText, 'transcribed', currentSpeaker);
+              }
+              currentSpeaker = speaker;
+              currentText = w + " ";
+            } else {
+              currentText += w + " ";
+            }
+          }
+
+          if (currentSpeaker !== undefined && currentText) {
+            transcript.appendStable(currentText, 'transcribed', currentSpeaker);
+          }
+        } else {
+          const text = result.transcript;
+          if (text) {
+            transcript.appendStable(text + ' ', 'transcribed');
+          }
+        }
       } else {
         // Interim result - update interim text
-        transcript.updateInterim(text, 'transcribed');
+        const text = result.transcript;
+        if (!text) return;
+
+        let speaker: string | undefined;
+        if (words.length > 0 && typeof words[0].speaker === 'number') {
+          speaker = `Speaker ${words[0].speaker}`;
+        }
+
+        transcript.updateInterim(text, 'transcribed', speaker);
       }
     });
 

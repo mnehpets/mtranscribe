@@ -32,11 +32,21 @@ export class Transcript {
    * Creates a new turn if one doesn't exist for this source.
    * Replaces the interim field with the new text.
    */
-  updateInterim(text: string, source: TurnSource): void {
+  updateInterim(text: string, source: TurnSource, speaker?: string): void {
     let turn = this.activeTurns.get(source);
+
+    if (turn && speaker && turn.speaker !== speaker) {
+      if (turn.text.length > 0) {
+        this.finalizeTurn(source);
+        turn = undefined;
+      } else {
+        turn.speaker = speaker;
+      }
+    }
+
     if (!turn) {
       turn = {
-        speaker: source === 'transcribed' ? 'Transcription' : 'User',
+        speaker: speaker || (source === 'transcribed' ? 'Transcription' : 'User'),
         text: '',
         timestamp: new Date(),
         interim: '',
@@ -52,11 +62,17 @@ export class Transcript {
    * Creates a new turn if one doesn't exist for this source.
    * Clears the interim field after appending.
    */
-  appendStable(text: string, source: TurnSource): void {
+  appendStable(text: string, source: TurnSource, speaker?: string): void {
     let turn = this.activeTurns.get(source);
+
+    if (turn && speaker && turn.speaker !== speaker) {
+      this.finalizeTurn(source);
+      turn = undefined;
+    }
+
     if (!turn) {
       turn = {
-        speaker: source === 'transcribed' ? 'Transcription' : 'User',
+        speaker: speaker || (source === 'transcribed' ? 'Transcription' : 'User'),
         text: '',
         timestamp: new Date(),
         interim: '',

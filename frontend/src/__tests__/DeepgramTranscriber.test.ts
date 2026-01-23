@@ -8,7 +8,7 @@ vi.mock('@deepgram/sdk', () => {
   const mockConnection = {
     on: vi.fn(),
     send: vi.fn(),
-    finish: vi.fn()
+    requestClose: vi.fn()
   };
 
   const mockListen = {
@@ -101,12 +101,13 @@ describe('DeepgramTranscriber', () => {
       await new Promise(resolve => setTimeout(resolve, 10));
       
       expect(mockClient.listen.live).toHaveBeenCalledWith({
-        model: 'nova-2',
+        model: 'nova-3',
         language: 'en',
         smart_format: true,
         interim_results: true,
         utterance_end_ms: 1000,
-        tier: 'nova'
+        diarize: true,
+        mip_opt_out: true
       });
       
       // Clean up
@@ -165,7 +166,7 @@ describe('DeepgramTranscriber', () => {
   });
 
   describe('stop', () => {
-    it('finishes the connection', async () => {
+    it('requests to close the connection', async () => {
       transcriber.attach(transcript);
       
       const { createClient } = await import('@deepgram/sdk');
@@ -179,7 +180,7 @@ describe('DeepgramTranscriber', () => {
       
       transcriber.stop();
       
-      expect(mockConnection.finish).toHaveBeenCalled();
+      expect(mockConnection.requestClose).toHaveBeenCalled();
     });
 
     it('does nothing if no connection exists', () => {
@@ -235,12 +236,15 @@ describe('DeepgramTranscriber', () => {
           is_final: false,
           channel: {
             alternatives: [
-              { transcript: 'Hello' }
+              {
+                transcript: 'Hello',
+                words: [ { word: 'Hello', start: 0.0, end: 0.5, speaker: 1 } ]
+              }
             ]
           }
         });
         
-        expect(updateInterimSpy).toHaveBeenCalledWith('Hello', 'transcribed');
+        expect(updateInterimSpy).toHaveBeenCalledWith('Hello', 'transcribed', 'Speaker 1');
       }
       
       // Clean up
@@ -279,6 +283,50 @@ describe('DeepgramTranscriber', () => {
         });
         
         expect(appendStableSpy).toHaveBeenCalledWith('Hello world ', 'transcribed');
+      }
+      
+      // Clean up
+      transcriber.stop();
+    });
+
+    it('calls appendStable with speaker info for final results', async () => {
+      transcriber.attach(transcript);
+      
+      const appendStableSpy = vi.spyOn(transcript, 'appendStable');
+      
+      const { createClient } = await import('@deepgram/sdk');
+      // @ts-ignore
+      const mockClient = createClient.mock.results[0]?.value || createClient();
+      // @ts-ignore
+      const mockConnection = mockClient.listen.live.mock.results[0]?.value || mockClient.listen.live();
+      
+      const startPromise = transcriber.start();
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Find the Transcript event handler
+      // @ts-ignore
+      const transcriptHandler = mockConnection.on.mock.calls.find(
+        (call: any) => call[0] === 'Transcript'
+      )?.[1];
+      
+      if (transcriptHandler) {
+        // Simulate final result with speaker info
+        transcriptHandler({
+          is_final: true,
+          channel: {
+            alternatives: [
+              {
+                transcript: 'Hello world',
+                words: [
+                  { word: 'Hello', start: 0.0, end: 0.5, speaker: 1, punctuated_word: 'Hello' },
+                  { word: 'world', start: 0.6, end: 1.0, speaker: 1, punctuated_word: 'world' }
+                ]
+              }
+            ]
+          }
+        });
+        
+        expect(appendStableSpy).toHaveBeenCalledWith('Hello world ', 'transcribed', 'Speaker 1');
       }
       
       // Clean up
