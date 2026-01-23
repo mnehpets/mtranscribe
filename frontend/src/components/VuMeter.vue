@@ -65,8 +65,7 @@ const startAudioProcessing = () => {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
     audioContext = new AudioContextClass()
     analyserNode = audioContext.createAnalyser()
-    analyserNode.fftSize = 64
-    analyserNode.smoothingTimeConstant = 0.8
+    analyserNode.fftSize = 128
 
     mediaStreamSource = audioContext.createMediaStreamSource(props.mediaStream)
     mediaStreamSource.connect(analyserNode)
