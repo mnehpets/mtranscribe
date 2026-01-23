@@ -1,7 +1,7 @@
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import type { LiveClient } from "@deepgram/sdk";
-import { AppConfig } from "../Config";
-import { Transcript } from "../Transcript";
+import { AppConfig } from "./Config";
+import { Transcript } from "./Transcript";
 
 /**
  * DeepgramTranscriber handles real-time speech-to-text transcription using Deepgram's API.
@@ -135,7 +135,7 @@ export class DeepgramTranscriber {
    */
   stop(): void {
     if (this.connection) {
-      this.connection.finish();
+      this.connection.requestClose();
       this.connection = null;
     }
   }
