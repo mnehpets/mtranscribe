@@ -1,0 +1,3 @@
+- [x] Implement `ExportView.vue` with preview and download button <!-- id: 0 -->
+- [x] Add unit tests for `ExportView.vue` <!-- id: 1 -->
+- [x] Verify export functionality in browser <!-- id: 2 -->
