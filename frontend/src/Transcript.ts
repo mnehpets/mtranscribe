@@ -53,6 +53,8 @@ export class Transcript {
         source
       };
       this.activeTurns.set(source, turn);
+      // Ensure the turn is added to the list immediately for reactivity
+      this.turns.push(turn);
     }
     turn.interim = text;
   }
@@ -79,6 +81,8 @@ export class Transcript {
         source
       };
       this.activeTurns.set(source, turn);
+      // Ensure the turn is added to the list immediately for reactivity
+      this.turns.push(turn);
     }
     turn.text += text;
     turn.interim = '';
@@ -98,7 +102,14 @@ export class Transcript {
           turn.text += turn.interim;
           turn.interim = '';
         }
-        this.turns.push(turn);
+        // Turn is already in this.turns list if it was created via updateInterim/appendStable
+        // but we need to make sure we don't double-add if logic changes
+      } else {
+        // If turn ended up empty, remove it from list
+        const index = this.turns.indexOf(turn);
+        if (index !== -1) {
+          this.turns.splice(index, 1);
+        }
       }
       this.activeTurns.delete(source);
     }

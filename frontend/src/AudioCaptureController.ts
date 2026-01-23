@@ -38,11 +38,16 @@ export class AudioCaptureController {
       // Create transcriber instance
       this._transcriber = this._transcriberFactory(this._transcript)
 
+      if (this._transcriber.start) {
+        await this._transcriber.start()
+      }
+
       // Set up MediaRecorder to capture audio
       const mimeType = this._getSupportedMimeType()
       this._mediaRecorder = new MediaRecorder(this._stream, { mimeType })
 
       this._mediaRecorder.ondataavailable = (event) => {
+        // Only send audio if we are actively capturing and have a transcriber
         if (event.data.size > 0 && this._state === 'capturing' && this._transcriber) {
           this._transcriber.sendAudio(event.data)
         }
@@ -63,8 +68,8 @@ export class AudioCaptureController {
       return
     }
 
+    // this._cleanup() sets state to idle
     this._cleanup()
-    this._state = 'idle'
   }
 
   mute(): void {
@@ -109,8 +114,13 @@ export class AudioCaptureController {
   }
 
   private _cleanup(): void {
+    // Update state first to prevent race conditions in ondataavailable
+    this._state = 'idle'
+
     // Stop media recorder
     if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
+      // The stop event will trigger a final ondataavailable which we want to ignore
+      // because we've already set state to idle
       this._mediaRecorder.stop()
     }
     this._mediaRecorder = null

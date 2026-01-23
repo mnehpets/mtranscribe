@@ -40,6 +40,7 @@
           <span 
             :class="['font-bold', getSpeakerColor(turn.speaker)]"
           >{{ turn.speaker }}</span>: {{ turn.text }}
+          <span v-if="turn.interim" class="text-gray-500 italic">{{ turn.interim }}</span>
         </div>
       </div>
     </div>
