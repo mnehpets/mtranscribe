@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DeepgramTranscriber } from '../DeepgramTranscriber';
-import { AppConfig } from '../../Config';
-import { Transcript } from '../../Transcript';
+import { AppConfig } from '../Config';
+import { Transcript } from '../Transcript';
 
 // Mock the @deepgram/sdk module
 vi.mock('@deepgram/sdk', () => {
