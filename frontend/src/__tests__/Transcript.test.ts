@@ -153,8 +153,14 @@ describe('Transcript', () => {
       transcript.appendStable('Typed', 'typed');
       transcript.finalizeTurn('transcribed');
       
-      expect(transcript.turns).toHaveLength(1);
+      // Both turns should be visible in the list (reactivity)
+      expect(transcript.turns).toHaveLength(2);
       expect(transcript.turns[0].source).toBe('transcribed');
+      expect(transcript.turns[1].source).toBe('typed');
+      
+      // But only typed should still be active
+      // @ts-ignore - accessing private property for testing
+      expect(transcript.activeTurns.has('transcribed')).toBe(false);
       // @ts-ignore - accessing private property for testing
       expect(transcript.activeTurns.has('typed')).toBe(true);
     });
@@ -219,6 +225,40 @@ describe('Transcript', () => {
       expect(transcript.turns[0].text).toBe('Transcribing ');
       expect(transcript.turns[1].source).toBe('typed');
       expect(transcript.turns[1].text).toBe('User note');
+    });
+  });
+
+  describe('reactivity', () => {
+    it('immediately adds turn to turns array on updateInterim', () => {
+      transcript.updateInterim('Hello', 'transcribed');
+      expect(transcript.turns).toHaveLength(1);
+      expect(transcript.turns[0].interim).toBe('Hello');
+    });
+
+    it('immediately adds turn to turns array on appendStable', () => {
+      transcript.appendStable('Hello', 'transcribed');
+      expect(transcript.turns).toHaveLength(1);
+      expect(transcript.turns[0].text).toBe('Hello');
+    });
+
+    it('does not duplicate turns when finalizing', () => {
+      transcript.appendStable('Hello', 'transcribed');
+      expect(transcript.turns).toHaveLength(1);
+      
+      transcript.finalizeTurn('transcribed');
+      expect(transcript.turns).toHaveLength(1);
+    });
+
+    it('removes turn if it ends up empty on finalize', () => {
+      transcript.updateInterim('temp', 'transcribed');
+      expect(transcript.turns).toHaveLength(1);
+      
+      transcript.updateInterim('', 'transcribed'); 
+      expect(transcript.turns).toHaveLength(1);
+      expect(transcript.turns[0].interim).toBe('');
+
+      transcript.finalizeTurn('transcribed');
+      expect(transcript.turns).toHaveLength(0);
     });
   });
 });

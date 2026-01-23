@@ -2,19 +2,32 @@ import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import type { LiveClient } from "@deepgram/sdk";
 import { AppConfig } from "./Config";
 import { Transcript } from "./Transcript";
+import type { Transcriber, TranscriberFactory } from "./Transcriber";
 
 /**
  * DeepgramTranscriber handles real-time speech-to-text transcription using Deepgram's API.
  * It connects to Deepgram's live transcription service and populates a Transcript object
  * with interim and final results.
  */
-export class DeepgramTranscriber {
+export class DeepgramTranscriber implements Transcriber {
   private config: AppConfig;
   private transcript: Transcript | null = null;
   private connection: LiveClient | null = null;
 
   constructor(config: AppConfig) {
     this.config = config;
+  }
+
+  /**
+   * Creates a factory function that produces DeepgramTranscriber instances
+   * configured with the provided AppConfig.
+   */
+  static createFactory(config: AppConfig): TranscriberFactory {
+    return (transcript: Transcript) => {
+      const transcriber = new DeepgramTranscriber(config);
+      transcriber.attach(transcript);
+      return transcriber;
+    };
   }
 
   /**
@@ -145,7 +158,7 @@ export class DeepgramTranscriber {
 
     // Handle connection close
     this.connection.on(LiveTranscriptionEvents.Close, () => {
-      console.log('Deepgram connection closed');
+      // Connection closed
     });
   }
 

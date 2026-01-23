@@ -1,10 +1,11 @@
 import { ref } from 'vue'
 import { useAudioCapture } from './useAudioCapture'
 import { Transcript } from '../Transcript'
-import type { Transcriber } from '../Transcriber'
+import { DeepgramTranscriber } from '../DeepgramTranscriber'
+import { AppConfig } from '../Config'
 
 const now = new Date()
-const currentTranscript = ref(new Transcript(
+const currentTranscript = ref<Transcript>(new Transcript(
   'Weekly Sync',
   'Weekly team synchronization meeting to discuss progress and blockers.',
   'Remember to update the Jira board.',
@@ -48,15 +49,7 @@ const currentTranscript = ref(new Transcript(
   ]
 ))
 
-// Mock factory for now - will be replaced with real implementation
-const transcriberFactory = (t: Transcript): Transcriber => ({
-  sendAudio: (blob) => {
-    // console.log('Sending audio chunk:', blob.size)
-  },
-  stop: () => {
-    console.log('Transcriber stopped')
-  }
-})
+const transcriberFactory = DeepgramTranscriber.createFactory(AppConfig.getInstance())
 
 // Initialize singleton with autoCleanup disabled so it persists across navigation
 const session = useAudioCapture(transcriberFactory, currentTranscript, { autoCleanup: false })

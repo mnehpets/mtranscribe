@@ -56,6 +56,21 @@ describe('TranscriptView', () => {
     expect(speakerElement.text()).toBe('Alice')
   })
 
+  it('displays interim text with different styling', () => {
+    const transcript = new Transcript('', '', '', [
+      { speaker: 'Alice', text: 'Hello', timestamp: new Date(), interim: ' processing...' }
+    ])
+    
+    const wrapper = mount(TranscriptView, {
+      props: { transcript }
+    })
+    
+    expect(wrapper.text()).toContain('processing...')
+    const interimElement = wrapper.find('.text-gray-500.italic')
+    expect(interimElement.exists()).toBe(true)
+    expect(interimElement.text()).toBe('processing...')
+  })
+
   it('colors speaker names consistently', () => {
     const transcript = new Transcript('', '', '', [
       { speaker: 'Alice', text: 'First', timestamp: new Date(), interim: '' },
