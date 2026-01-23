@@ -33,10 +33,17 @@
         :key="index" 
         class="turn flex gap-3"
       >
-        <div class="text-xs text-gray-400 font-mono pt-1 select-none">
-          {{ formatTime(turn.timestamp) }}
+        <div class="flex items-start gap-1 pt-1 min-w-[4.5rem]">
+          <div class="text-xs text-gray-400 font-mono select-none">
+            {{ formatTime(turn.timestamp) }}
+          </div>
+          <Icon 
+            :icon="getSourceIcon(turn.source)" 
+            class="text-gray-300 text-xs mt-0.5" 
+            :title="turn.source"
+          />
         </div>
-        <div>
+        <div class="flex-1">
           <span 
             :class="['font-bold', getSpeakerColor(turn.speaker)]"
           >{{ turn.speaker }}</span>: {{ turn.text }}
@@ -48,7 +55,8 @@
 </template>
 
 <script setup lang="ts">
-import type { Transcript } from '../Transcript'
+import type { Transcript, TurnSource } from '../Transcript'
+import { Icon } from '@iconify/vue'
 import {
   FwbAccordion,
   FwbAccordionPanel,
@@ -64,6 +72,18 @@ defineProps<Props>()
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+}
+
+function getSourceIcon(source?: TurnSource): string {
+  switch (source) {
+    case 'typed':
+      return 'mdi:keyboard-outline'
+    case 'generated':
+      return 'mdi:robot-outline'
+    case 'transcribed':
+    default:
+      return 'mdi:microphone-outline'
+  }
 }
 
 /**
