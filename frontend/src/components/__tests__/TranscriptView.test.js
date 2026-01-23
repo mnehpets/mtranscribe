@@ -8,7 +8,8 @@ const stubs = {
   FwbAccordion: { template: '<div><slot /></div>' },
   FwbAccordionPanel: { template: '<div><slot /></div>' },
   FwbAccordionHeader: { template: '<div><slot /></div>' },
-  FwbAccordionContent: { template: '<div><slot /></div>' }
+  FwbAccordionContent: { template: '<div><slot /></div>' },
+  Icon: { template: '<span class="icon-stub" :data-icon="icon"></span>', props: ['icon'] }
 }
 
 describe('TranscriptView', () => {
@@ -221,5 +222,26 @@ describe('TranscriptView', () => {
     expect(turns[0].text()).toContain('First')
     expect(turns[1].text()).toContain('Second')
     expect(turns[2].text()).toContain('Third')
+  })
+
+  it('renders correct icon for turn source', () => {
+    const transcript = new Transcript('', '', '', [
+      { speaker: 'System', text: 'Transcribed', timestamp: new Date(), interim: '', source: 'transcribed' },
+      { speaker: 'User', text: 'Typed', timestamp: new Date(), interim: '', source: 'typed' },
+      { speaker: 'AI', text: 'Generated', timestamp: new Date(), interim: '', source: 'generated' }
+    ])
+    
+    const wrapper = mount(TranscriptView, {
+      props: { transcript },
+      global: { stubs }
+    })
+    
+    // Iconify renders an svg even if icon data is missing in test env
+    // We can check the title attribute we added to verify correct source
+    const icons = wrapper.findAll('svg')
+    expect(icons).toHaveLength(3)
+    expect(icons[0].attributes('title')).toBe('transcribed')
+    expect(icons[1].attributes('title')).toBe('typed')
+    expect(icons[2].attributes('title')).toBe('generated')
   })
 })
