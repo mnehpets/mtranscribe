@@ -25,11 +25,11 @@ type NotionToken struct {
 
 // Server encapsulates the HTTP server and its dependencies.
 type Server struct {
-	cfg              *Config
-	sessionProcessor endpoint.Processor
+	cfg               *Config
+	sessionProcessor  endpoint.Processor
 	securityProcessor endpoint.Processor
-	authHandler      http.Handler
-	mux              *http.ServeMux
+	authHandler       http.Handler
+	mux               *http.ServeMux
 }
 
 // New creates a new Server instance with the given configuration.
@@ -63,7 +63,9 @@ func New(cfg *Config) (*Server, error) {
 		middleware.DefaultCookieName, // "OSS"
 		"key1",
 		map[string][]byte{"key1": sessionKey},
-		middleware.WithCookieOptions("/", "", secureCookies, true, http.SameSiteLaxMode),
+		middleware.WithCookieOptions(
+			middleware.WithSecure(secureCookies),
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session processor: %w", err)
@@ -104,31 +106,28 @@ func (s *Server) setupNotionAuth(sessionKey []byte, secureCookies bool) error {
 	// Register Notion as a non-OIDC OAuth2 provider
 	registry.RegisterOAuth2Provider("notion", notionConfig)
 
-	// Create auth state cookie (separate from session cookie)
-	authCookie, err := middleware.NewCustomSecureCookie[auth.AuthStateMap](
-		auth.DefaultCookieName, // "osa"
-		"key1",
-		map[string][]byte{"key1": sessionKey},
-		nil, nil, // use default cbor marshal
-		middleware.WithCookieOptions("/auth", "", secureCookies, true, http.SameSiteLaxMode),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create auth cookie: %w", err)
-	}
-
 	// Create processors slice
 	processors := []endpoint.Processor{s.securityProcessor, s.sessionProcessor}
 
 	// Create auth handler
-	s.authHandler = auth.NewHandler(
+	handler, err := auth.NewHandler(
 		registry,
-		authCookie,
+		auth.DefaultCookieName, // "osa"
+		"key1",
+		map[string][]byte{"key1": sessionKey},
 		s.cfg.PublicURL,
 		"/auth",
 		auth.WithPreAuthHook(s.preAuthHook),
 		auth.WithSuccessEndpoint(s.authSuccessEndpoint),
 		auth.WithProcessors(processors...),
+		auth.WithCookieOptions(
+			middleware.WithSecure(secureCookies),
+		),
 	)
+	if err != nil {
+		return fmt.Errorf("failed to create auth handler: %w", err)
+	}
+	s.authHandler = handler
 
 	return nil
 }
