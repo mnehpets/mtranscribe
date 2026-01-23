@@ -1,6 +1,6 @@
 # Transcript Model Specs
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Turn Source Attribution
 Each turn MUST indicate its origin source and support multiple source types.
