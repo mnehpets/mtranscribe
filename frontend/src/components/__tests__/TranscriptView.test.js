@@ -236,7 +236,7 @@ describe('TranscriptView', () => {
       global: { stubs }
     })
     
-    // Iconify renders an svg even if icon data is missing in test env
+    // Iconify (unplugin-icons) renders an svg
     // We can check the title attribute we added to verify correct source
     const icons = wrapper.findAll('svg')
     expect(icons).toHaveLength(3)

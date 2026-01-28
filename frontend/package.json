@@ -12,12 +12,12 @@
   },
   "dependencies": {
     "@deepgram/sdk": "^4.11.3",
-    "@iconify/vue": "^5.0.0",
     "flowbite-vue": "^0.2.2",
     "vue": "^3.5.26",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@iconify-json/mdi": "^1.2.3",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
     "@vitejs/plugin-vue": "^6.0.3",
@@ -28,6 +28,7 @@
     "jsdom": "^25.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
+    "unplugin-icons": "^23.0.1",
     "vite": "^7.3.1",
     "vitest": "^2.1.8",
     "wait-on": "^8.0.5"

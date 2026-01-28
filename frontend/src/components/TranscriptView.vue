@@ -37,9 +37,9 @@
           <div class="text-xs text-gray-400 font-mono select-none">
             {{ formatTime(turn.timestamp) }}
           </div>
-          <Icon 
-            :icon="getSourceIcon(turn.source)" 
-            class="text-gray-300 text-xs mt-0.5" 
+          <component
+            :is="getSourceIcon(turn.source)"
+            class="text-gray-300 text-xs mt-0.5"
             :title="turn.source"
           />
         </div>
@@ -56,7 +56,9 @@
 
 <script setup lang="ts">
 import type { Transcript, TurnSource } from '../Transcript'
-import { Icon } from '@iconify/vue'
+import IconMdiKeyboardOutline from '~icons/mdi/keyboard-outline'
+import IconMdiRobotOutline from '~icons/mdi/robot-outline'
+import IconMdiMicrophoneOutline from '~icons/mdi/microphone-outline'
 import {
   FwbAccordion,
   FwbAccordionPanel,
@@ -74,15 +76,15 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 }
 
-function getSourceIcon(source?: TurnSource): string {
+function getSourceIcon(source?: TurnSource) {
   switch (source) {
     case 'typed':
-      return 'mdi:keyboard-outline'
+      return IconMdiKeyboardOutline
     case 'generated':
-      return 'mdi:robot-outline'
+      return IconMdiRobotOutline
     case 'transcribed':
     default:
-      return 'mdi:microphone-outline'
+      return IconMdiMicrophoneOutline
   }
 }
 

@@ -12,7 +12,7 @@
           @click="togglePause"
           :title="state === 'muted' ? 'Resume Recording' : 'Pause Recording'"
         >
-          <Icon :icon="state === 'muted' ? 'mdi:play' : 'mdi:pause'" class="w-5 h-5" />
+          <component :is="state === 'muted' ? IconMdiPlay : IconMdiPause" class="w-5 h-5" />
         </fwb-button>
 
         <!-- Record/Stop Button -->
@@ -24,7 +24,7 @@
           @click="toggleRecording"
           :title="state === 'idle' ? 'Start Recording' : 'Stop Recording'"
         >
-          <Icon :icon="state === 'idle' ? 'mdi:microphone' : 'mdi:stop'" class="w-5 h-5" />
+          <component :is="state === 'idle' ? IconMdiMicrophone : IconMdiStop" class="w-5 h-5" />
         </fwb-button>
       </div>
 
@@ -53,9 +53,12 @@
 
 <script setup lang="ts">
 import { FwbButton } from 'flowbite-vue'
-import { Icon } from '@iconify/vue'
 import VuMeter from './VuMeter.vue'
 import { useRecordingSession } from '../composables/useRecordingSession'
+import IconMdiPlay from '~icons/mdi/play'
+import IconMdiPause from '~icons/mdi/pause'
+import IconMdiMicrophone from '~icons/mdi/microphone'
+import IconMdiStop from '~icons/mdi/stop'
 
 const { state, stream, start, stop, mute, unmute } = useRecordingSession()
 
