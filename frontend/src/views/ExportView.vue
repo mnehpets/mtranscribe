@@ -6,12 +6,12 @@
           <h1 class="text-3xl font-bold text-gray-900">Export Transcript</h1>
           <p class="mt-2 text-gray-600">Preview and export your conversation transcript.</p>
         </div>
-        <button 
+        <FwbButton 
           @click="downloadMarkdown"
-          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mb-1"
+          class="mb-1"
         >
           Download Markdown
-        </button>
+        </FwbButton>
       </header>
 
       <div class="bg-white shadow rounded-lg overflow-hidden flex flex-col h-[75vh]">
@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { FwbTabs, FwbTab } from 'flowbite-vue'
+import { FwbTabs, FwbTab, FwbButton } from 'flowbite-vue'
 import { useRecordingSession } from '../composables/useRecordingSession'
 import { MarkdownRenderer } from '../MarkdownRenderer'
 import TranscriptView from '../components/TranscriptView.vue'
