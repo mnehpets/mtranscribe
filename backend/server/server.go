@@ -60,7 +60,6 @@ func New(cfg *Config) (*Server, error) {
 
 	// Setup session middleware with CSRF protection (SameSite=Lax)
 	s.sessionProcessor, err = middleware.NewSessionProcessor(
-		middleware.DefaultCookieName, // "OSS"
 		"key1",
 		map[string][]byte{"key1": sessionKey},
 		middleware.WithCookieOptions(

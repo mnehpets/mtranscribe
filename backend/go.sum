@@ -26,10 +26,8 @@ github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa1
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
 github.com/mitchellh/reflectwalk v1.0.2/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
-github.com/mnehpets/oneserve v0.0.0-20260121061301-3ccfaaf2eaa2 h1:tbZTAEOODIgadDJJDl7JdO/g9i6MC4rDLcneRDZZ+h4=
-github.com/mnehpets/oneserve v0.0.0-20260121061301-3ccfaaf2eaa2/go.mod h1:Mefkf9Klr5HD1aflo4af27O6c7BYhTWEVGrEmNIibW0=
-github.com/mnehpets/oneserve v0.0.0-20260123025728-3933379683ee h1:DOs7OcBQjd12PhPn4brJHbqyYjXHtn/NM7GYUKiRzsw=
-github.com/mnehpets/oneserve v0.0.0-20260123025728-3933379683ee/go.mod h1:Mefkf9Klr5HD1aflo4af27O6c7BYhTWEVGrEmNIibW0=
+github.com/mnehpets/oneserve v0.0.0-20260128034201-7f4c481c8a71 h1:nb3lOFniZSxHiYyAQr3dThJiykklzTM+dEMuC658teM=
+github.com/mnehpets/oneserve v0.0.0-20260128034201-7f4c481c8a71/go.mod h1:Mefkf9Klr5HD1aflo4af27O6c7BYhTWEVGrEmNIibW0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
