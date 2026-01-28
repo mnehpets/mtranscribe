@@ -56,6 +56,12 @@ func New(cfg *Config) (*Server, error) {
 	if !secureCookies {
 		securityOpts = append(securityOpts, middleware.WithoutHSTS())
 	}
+
+	// Configure CSP to allow unsafe-inline for scripts/styles (required for Vue/Vite),
+	// and Deepgram API access.
+	csp := "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self' https://api.deepgram.com wss://api.deepgram.com;"
+	securityOpts = append(securityOpts, middleware.WithCSP(csp))
+
 	s.securityProcessor = middleware.NewSecurityHeadersProcessor(securityOpts...)
 
 	// Setup session middleware with CSRF protection (SameSite=Lax)
