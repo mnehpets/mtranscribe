@@ -102,6 +102,9 @@ func (s *Server) setupRoutes(processors []endpoint.Processor) {
 	s.mux.Handle("GET /auth/logout", endpoint.HandleFunc(logoutEndpoint, processors...))
 	s.mux.Handle("GET /auth/me", endpoint.HandleFunc(meEndpoint, processors...))
 
+	// Notion Proxy
+	s.mux.Handle("/api/notion/{path...}", endpoint.HandleFunc(s.notionProxyEndpoint, processors...))
+
 	// 3. File system endpoint - serves static assets (catch-all for everything else)
 	s.mux.HandleFunc("/", endpoint.HandleFunc(s.fileSystemEndpoint, processors...))
 }

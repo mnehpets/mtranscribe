@@ -48,6 +48,11 @@ The server will start on port 8080 (configurable via `PORT` environment variable
 ### Static Serving
 - `GET /` - Redirects to `/u/`
 - `GET /u/*` - Serves the frontend SPA for all client-side routes
+
+### Notion Proxy
+- `ANY /api/notion/*` - Proxies requests to `https://api.notion.com/*`.
+  - Requires authenticated session with Notion token.
+  - Injects `Authorization: Bearer <token>` header.
 - `GET /assets/*` - Serves static assets (CSS, JS, etc.)
 
 ### Session Management
