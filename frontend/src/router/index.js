@@ -4,6 +4,7 @@ import CaptureView from '../views/CaptureView.vue'
 import ExportView from '../views/ExportView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import AuthCallback from '../views/AuthCallback.vue'
+import NotionTestView from '../views/NotionTestView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -26,6 +27,11 @@ const router = createRouter({
           path: 'settings',
           name: 'settings',
           component: SettingsView
+        },
+        {
+          path: 'notion-test',
+          name: 'notion-test',
+          component: NotionTestView
         }
       ]
     },
