@@ -31,11 +31,17 @@ function iconFor(type: HierarchyNode['type']) {
 function canExpand() {
   return props.level < props.maxLevel && props.node.children.length > 0;
 }
+
+function isOpenByDefault(node: HierarchyNode) {
+  // Datasources have a large number of children, so keep them closed by default.
+  return node.type !== 'data_source';
+}
+
 </script>
 
 <template>
   <div :class="level === 1 ? '' : 'py-1'">
-    <details v-if="canExpand()" open>
+    <details v-if="canExpand()" :open="isOpenByDefault(node)">
       <summary :class="level === 1 ? 'cursor-pointer font-medium' : 'cursor-pointer'">
         <component :is="iconFor(node.type)" class="inline-block w-4 h-4 mr-1 align-text-bottom" />
         {{ node.title }}
@@ -46,7 +52,6 @@ function canExpand() {
           v-for="child in node.children"
           :key="child.id"
           :node="child"
-          :iconFor="iconFor"
           :level="level + 1"
           :maxLevel="maxLevel"
         />
