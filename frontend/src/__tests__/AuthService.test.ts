@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AuthService, AuthError } from '../AuthService';
 
 describe('AuthError', () => {
@@ -60,6 +60,7 @@ describe('AuthService', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        json: async () => ({ logged_in: true, services: [] }),
       });
 
       const authService = AuthService.getInstance();
@@ -79,6 +80,7 @@ describe('AuthService', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 401,
+        json: async () => ({}),
       });
 
       const authService = AuthService.getInstance();
@@ -153,20 +155,15 @@ describe('AuthService', () => {
       const loginPromise = authService.loginWithPopup();
       
       expect(mockWindow.open).toHaveBeenCalledWith(
-        '/auth/login/blah?next_url=%2Fu%2Fauth-callback',
+        '/auth/login/notion?next_url=%2Fu%2Fauth-callback',
         'authPopup',
         'width=500,height=600,menubar=no,toolbar=no,location=no,status=no'
       );
 
       // Simulate successful auth
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: true }
-      });
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ type: 'auth-result', success: true });
 
       await expect(loginPromise).resolves.toBeUndefined();
     });
@@ -188,14 +185,9 @@ describe('AuthService', () => {
       await expect(authService.loginWithPopup()).rejects.toThrow('Login flow already in progress');
       
       // Clean up first login
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: true }
-      });
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ type: 'auth-result', success: true });
 
       await firstLogin;
     });
@@ -204,14 +196,9 @@ describe('AuthService', () => {
       const authService = AuthService.getInstance();
       const loginPromise = authService.loginWithPopup();
 
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: true }
-      });
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ type: 'auth-result', success: true });
 
       await expect(loginPromise).resolves.toBeUndefined();
       expect(mockPopup.close).toHaveBeenCalled();
@@ -221,14 +208,9 @@ describe('AuthService', () => {
       const authService = AuthService.getInstance();
       const loginPromise = authService.loginWithPopup();
 
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: false, errorDescription: 'Invalid credentials' }
-      });
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ type: 'auth-result', success: false, errorDescription: 'Invalid credentials' });
 
       await expect(loginPromise).rejects.toThrow(AuthError);
       await expect(loginPromise).rejects.toThrow('Invalid credentials');
@@ -239,18 +221,13 @@ describe('AuthService', () => {
       const authService = AuthService.getInstance();
       const loginPromise = authService.loginWithPopup();
 
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { 
-          type: 'auth-result', 
-          success: false, 
-          errorCode: 'access_denied',
-          errorDescription: 'User denied access to the application'
-        }
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ 
+        type: 'auth-result', 
+        success: false, 
+        errorCode: 'access_denied',
+        errorDescription: 'User denied access to the application'
       });
 
       try {
@@ -269,17 +246,12 @@ describe('AuthService', () => {
       const authService = AuthService.getInstance();
       const loginPromise = authService.loginWithPopup();
 
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { 
-          type: 'auth-result', 
-          success: false, 
-          errorCode: 'invalid_request'
-        }
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ 
+        type: 'auth-result', 
+        success: false, 
+        errorCode: 'invalid_request'
       });
 
       try {
@@ -307,54 +279,22 @@ describe('AuthService', () => {
       await expect(loginPromise).rejects.toThrow('Popup was closed before authentication completed');
     });
 
-    it('ignores messages from different origins', async () => {
-      const authService = AuthService.getInstance();
-      const loginPromise = authService.loginWithPopup();
-
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      // Simulate message from different origin - should be ignored
-      messageHandler({
-        origin: 'https://malicious-site.com',
-        data: { type: 'auth-result', success: true }
-      });
-
-      // Login should still be pending
-      expect(authService.isLoginInProgress()).toBe(true);
-
-      // Now send valid message
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: true }
-      });
-
-      await loginPromise;
-    });
 
     it('ignores messages with wrong type', async () => {
       const authService = AuthService.getInstance();
       const loginPromise = authService.loginWithPopup();
 
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
       
       // Simulate message with wrong type - should be ignored
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'some-other-type', success: true }
-      });
+      channel.postMessage({ type: 'some-other-type', success: true });
 
       // Login should still be pending
       expect(authService.isLoginInProgress()).toBe(true);
 
       // Now send valid message
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: true }
-      });
+      channel.postMessage({ type: 'auth-result', success: true });
 
       await loginPromise;
     });
@@ -363,18 +303,12 @@ describe('AuthService', () => {
       const authService = AuthService.getInstance();
       const loginPromise = authService.loginWithPopup();
 
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: true }
-      });
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ type: 'auth-result', success: true });
 
       await loginPromise;
 
-      expect(mockWindow.removeEventListener).toHaveBeenCalledWith('message', messageHandler);
       expect(mockWindow.clearInterval).toHaveBeenCalledWith(123);
       expect(authService.isLoginInProgress()).toBe(false);
     });
@@ -383,18 +317,12 @@ describe('AuthService', () => {
       const authService = AuthService.getInstance();
       const loginPromise = authService.loginWithPopup();
 
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: false, error: 'Auth failed' }
-      });
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ type: 'auth-result', success: false, error: 'Auth failed' });
 
       await expect(loginPromise).rejects.toThrow(AuthError);
 
-      expect(mockWindow.removeEventListener).toHaveBeenCalledWith('message', messageHandler);
       expect(mockWindow.clearInterval).toHaveBeenCalledWith(123);
       expect(authService.isLoginInProgress()).toBe(false);
     });
@@ -437,14 +365,9 @@ describe('AuthService', () => {
       const authService = AuthService.getInstance();
       const loginPromise = authService.loginWithPopup();
 
-      const messageHandler = mockWindow.addEventListener.mock.calls.find(
-        (call: any[]) => call[0] === 'message'
-      )[1];
-      
-      messageHandler({
-        origin: 'http://localhost',
-        data: { type: 'auth-result', success: true }
-      });
+      // @ts-ignore
+      const channel = new BroadcastChannel('auth_channel');
+      channel.postMessage({ type: 'auth-result', success: true });
 
       await loginPromise;
       expect(authService.isLoginInProgress()).toBe(false);
