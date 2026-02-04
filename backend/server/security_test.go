@@ -1,4 +1,4 @@
-package server_test
+package server
 
 import (
 	"net/http"
@@ -15,18 +15,13 @@ func TestSecurityHeaders(t *testing.T) {
 	endpoints := []string{
 		"/",                // FileSystem
 		"/u/dashboard",     // Frontend
-		"/auth/login/anon", // Session (POST)
+		"/auth/login/anon", // Session (GET)
 		"/auth/me",         // Session (GET)
 	}
 
 	for _, path := range endpoints {
 		t.Run(path, func(t *testing.T) {
-			var req *http.Request
-			if path == "/auth/login/anon" {
-				req, _ = http.NewRequest("POST", ts.URL+path, nil)
-			} else {
-				req, _ = http.NewRequest("GET", ts.URL+path, nil)
-			}
+			req, _ := http.NewRequest("GET", ts.URL+path, nil)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {

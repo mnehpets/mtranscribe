@@ -1,4 +1,4 @@
-package server_test
+package server
 
 import (
 	"encoding/json"
@@ -9,14 +9,12 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-
-	"github.com/mnehpets/mtranscribe/backend/server"
 )
 
-func setupTestServer(t *testing.T) *server.Server {
+func setupTestServer(t *testing.T) *Server {
 	t.Helper()
 
-	cfg := &server.Config{
+	cfg := &Config{
 		Port:               "8080",
 		SessionKey:         "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=",
 		NotionClientID:     "test_client_id",
@@ -25,7 +23,7 @@ func setupTestServer(t *testing.T) *server.Server {
 		FrontendDir:        "../../frontend/dist",
 	}
 
-	srv, err := server.New(cfg)
+	srv, err := New(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
@@ -39,7 +37,7 @@ func TestSessionManagement_AnonymousLogin(t *testing.T) {
 	defer ts.Close()
 
 	// Test anonymous login with redirect
-	req, err := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
+	req, err := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +124,7 @@ func TestSessionManagement_AnonymousLoginInvalidRedirect(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req, err := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url="+tt.nextURL, nil)
+			req, err := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url="+tt.nextURL, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -157,7 +155,7 @@ func TestSessionManagement_Logout(t *testing.T) {
 	}
 
 	// First, log in anonymously
-	req, _ := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url=/u/", nil)
+	req, _ := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/", nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -178,7 +176,7 @@ func TestSessionManagement_Logout(t *testing.T) {
 	}
 
 	// Now log out - with "/" it should redirect to "/u/" since we use ValidateNextURL
-	req, _ = http.NewRequest("POST", ts.URL+"/auth/logout?next_url=/", nil)
+	req, _ = http.NewRequest("GET", ts.URL+"/auth/logout?next_url=/", nil)
 	req.AddCookie(sessionCookie)
 	resp, err = client.Do(req)
 	if err != nil {
@@ -248,7 +246,7 @@ func TestSessionManagement_Me(t *testing.T) {
 		}
 
 		// First log in
-		req, _ := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url=/u/", nil)
+		req, _ := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/", nil)
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Fatal(err)
@@ -282,8 +280,8 @@ func TestSessionManagement_Me(t *testing.T) {
 			t.Errorf("Expected logged_in to be true, got: %s", bodyStr)
 		}
 
-		if !strings.Contains(bodyStr, `"has_notion_token":false`) {
-			t.Errorf("Expected has_notion_token to be false, got: %s", bodyStr)
+		if !strings.Contains(bodyStr, `"services":[]`) {
+			t.Errorf("Expected services to be empty, got: %s", bodyStr)
 		}
 	})
 }
@@ -312,19 +310,23 @@ func TestNotionAuthFlow(t *testing.T) {
 	}))
 	defer mockOAuthServer.Close()
 
-	// 2. Setup Server with Mock URLs
-	cfg := &server.Config{
+	// 2. Set the Notion URL base to point to the mock server
+	originalNotionURLBase := setNotionURLBase(mockOAuthServer.URL + "/")
+	defer func() {
+		setNotionURLBase(originalNotionURLBase)
+	}()
+
+	// 3. Setup Server with Mock URLs
+	cfg := &Config{
 		Port:               "8080",
 		SessionKey:         "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=",
 		NotionClientID:     "test_client_id",
 		NotionClientSecret: "test_client_secret",
 		PublicURL:          "http://localhost:8080",
 		FrontendDir:        "../../frontend/dist",
-		NotionAuthURL:      mockOAuthServer.URL + "/authorize",
-		NotionTokenURL:     mockOAuthServer.URL + "/token",
 	}
 
-	srv, err := server.New(cfg)
+	srv, err := New(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
@@ -341,7 +343,7 @@ func TestNotionAuthFlow(t *testing.T) {
 	}
 
 	// 3. Anonymous Login to get Session
-	loginReq, _ := http.NewRequest("POST", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
+	loginReq, _ := http.NewRequest("GET", ts.URL+"/auth/login/anon?next_url=/u/dashboard", nil)
 	resp, err := client.Do(loginReq)
 	if err != nil {
 		t.Fatal(err)
@@ -383,7 +385,7 @@ func TestNotionAuthFlow(t *testing.T) {
 	// Simulate the user being redirected back with code and state
 	callbackURL := ts.URL + "/auth/callback/notion?code=mock_code&state=" + state
 	callbackReq, _ := http.NewRequest("GET", callbackURL, nil)
-	
+
 	resp, err = client.Do(callbackReq)
 	if err != nil {
 		t.Fatal(err)
@@ -416,7 +418,20 @@ func TestNotionAuthFlow(t *testing.T) {
 		t.Errorf("Expected logged_in to be true")
 	}
 
-	if hasToken, ok := meResp["has_notion_token"].(bool); !ok || !hasToken {
-		t.Errorf("Expected has_notion_token to be true")
+	services, ok := meResp["services"].([]interface{})
+	if !ok {
+		t.Fatalf("Expected services list in response")
+	}
+
+	hasNotion := false
+	for _, s := range services {
+		if s == "notion" {
+			hasNotion = true
+			break
+		}
+	}
+
+	if !hasNotion {
+		t.Errorf("Expected 'notion' in services list, got %v", services)
 	}
 }
