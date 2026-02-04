@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { getHierarchy, type HierarchyNode } from '../services/notion';
+import { getHierarchy, type HierarchyNode } from '../notion';
+
+import NotionTreeNode from '../components/notion/NotionTreeNode.vue';
 
 const nodes = ref<HierarchyNode[]>([]);
 const loading = ref(true);
@@ -26,18 +28,7 @@ onMounted(async () => {
     
     <ul v-else class="space-y-2">
       <li v-for="node in nodes" :key="node.id">
-        <details open>
-            <summary class="cursor-pointer font-medium">
-                <span :class="node.type === 'database' ? 'text-blue-600' : 'text-gray-800'">
-                    {{ node.type === 'database' ? '🗄️' : '📄' }} {{ node.title }}
-                </span>
-            </summary>
-            <div class="pl-6 mt-1 border-l-2 border-gray-200" v-if="node.children.length">
-                <div v-for="child in node.children" :key="child.id" class="py-1">
-                     {{ child.type === 'database' ? '🗄️' : '📄' }} {{ child.title }}
-                </div>
-            </div>
-        </details>
+        <NotionTreeNode :node="node" :maxLevel="4" />
       </li>
     </ul>
   </div>
