@@ -2,9 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DeepgramTranscriber } from '../DeepgramTranscriber';
 import { AppConfig } from '../Config';
 import { Transcript } from '../Transcript';
+import { LiveTranscriptionEvents } from '@deepgram/sdk';
 
 // Mock the @deepgram/sdk module
-vi.mock('@deepgram/sdk', () => {
+vi.mock('@deepgram/sdk', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@deepgram/sdk')>();
+  
   const mockConnection = {
     on: vi.fn(),
     send: vi.fn(),
@@ -20,14 +23,8 @@ vi.mock('@deepgram/sdk', () => {
   };
 
   return {
+    ...actual,
     createClient: vi.fn(() => mockClient),
-    LiveTranscriptionEvents: {
-      Open: 'Open',
-      Close: 'Close',
-      Transcript: 'Transcript',
-      Error: 'Error',
-      UtteranceEnd: 'UtteranceEnd'
-    }
   };
 });
 
@@ -227,7 +224,7 @@ describe('DeepgramTranscriber', () => {
       // Find the Transcript event handler
       // @ts-ignore
       const transcriptHandler = mockConnection.on.mock.calls.find(
-        (call: any) => call[0] === 'Transcript'
+        (call: any) => call[0] === LiveTranscriptionEvents.Transcript
       )?.[1];
       
       if (transcriptHandler) {
@@ -268,7 +265,7 @@ describe('DeepgramTranscriber', () => {
       // Find the Transcript event handler
       // @ts-ignore
       const transcriptHandler = mockConnection.on.mock.calls.find(
-        (call: any) => call[0] === 'Transcript'
+        (call: any) => call[0] === LiveTranscriptionEvents.Transcript
       )?.[1];
       
       if (transcriptHandler) {
@@ -306,7 +303,7 @@ describe('DeepgramTranscriber', () => {
       // Find the Transcript event handler
       // @ts-ignore
       const transcriptHandler = mockConnection.on.mock.calls.find(
-        (call: any) => call[0] === 'Transcript'
+        (call: any) => call[0] === LiveTranscriptionEvents.Transcript
       )?.[1];
       
       if (transcriptHandler) {
@@ -350,7 +347,7 @@ describe('DeepgramTranscriber', () => {
       // Find the UtteranceEnd event handler
       // @ts-ignore
       const utteranceEndHandler = mockConnection.on.mock.calls.find(
-        (call: any) => call[0] === 'UtteranceEnd'
+        (call: any) => call[0] === LiveTranscriptionEvents.UtteranceEnd
       )?.[1];
       
       if (utteranceEndHandler) {

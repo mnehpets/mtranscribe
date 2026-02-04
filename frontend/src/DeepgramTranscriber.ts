@@ -1,8 +1,8 @@
-import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
-import type { LiveClient } from "@deepgram/sdk";
 import { AppConfig } from "./Config";
 import { Transcript } from "./Transcript";
 import type { Transcriber, TranscriberFactory } from "./Transcriber";
+import { createClient, LiveTranscriptionEvents } from "./deepgram-wrapper";
+import type { LiveClient } from "./deepgram-wrapper";
 
 /**
  * DeepgramTranscriber handles real-time speech-to-text transcription using Deepgram's API.
