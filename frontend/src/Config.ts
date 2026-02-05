@@ -7,6 +7,8 @@ const STORAGE_KEY = 'mtranscribe-settings';
 export class AppConfig {
   private static instance: AppConfig;
   public deepgramApiKey: string = '';
+  public notionExportDestinationId: string = '';
+  public notionExportDestinationTitle: string = '';
 
   private constructor() {
     this.load();
@@ -32,6 +34,12 @@ export class AppConfig {
         if (data.deepgramApiKey) {
           this.deepgramApiKey = data.deepgramApiKey;
         }
+        if (data.notionExportDestinationId) {
+          this.notionExportDestinationId = data.notionExportDestinationId;
+        }
+        if (data.notionExportDestinationTitle) {
+          this.notionExportDestinationTitle = data.notionExportDestinationTitle;
+        }
       } catch (e) {
         console.error('Failed to parse settings', e);
       }
@@ -45,7 +53,9 @@ export class AppConfig {
     if (typeof localStorage === 'undefined') return;
 
     const data = {
-      deepgramApiKey: this.deepgramApiKey
+      deepgramApiKey: this.deepgramApiKey,
+      notionExportDestinationId: this.notionExportDestinationId,
+      notionExportDestinationTitle: this.notionExportDestinationTitle
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
