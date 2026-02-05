@@ -47,7 +47,7 @@ function isOpenByDefault(node: HierarchyNode) {
         {{ node.title }}
       </summary>
 
-      <div class="pl-6 mt-1 border-l-2 border-gray-200">
+      <div class="pl-6 mt-1 border-l-2 border-gray-200 dark:border-gray-700">
         <NotionTreeNode
           v-for="child in node.children"
           :key="child.id"

@@ -1,6 +1,6 @@
 <template>
   <div class="p-6 max-w-4xl mx-auto">
-    <h2 class="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h2>
     
     <div class="max-w-md space-y-6">
       <fwb-input
@@ -10,18 +10,18 @@
         type="password"
       />
 
-      <div class="pt-6 border-t border-gray-200">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Integrations</h3>
+      <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Integrations</h3>
         
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
           <div class="flex items-center space-x-3">
             <div class="flex-shrink-0">
               <!-- Notion Icon -->
               <icon-simple-icons-notion class="w-8 h-8" />
             </div>
             <div>
-              <h4 class="text-sm font-medium text-gray-900">Notion</h4>
-              <p class="text-sm text-gray-500">
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white">Notion</h4>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
                 {{ isNotionConnected ? 'Connected to Notion' : 'Connect to save transcripts' }}
               </p>
             </div>
@@ -42,7 +42,7 @@
           </div>
         </div>
 
-        <div v-if="authError" class="mt-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
+        <div v-if="authError" class="mt-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
           {{ authError }}
         </div>
       </div>

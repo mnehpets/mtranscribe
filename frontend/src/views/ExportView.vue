@@ -3,8 +3,8 @@
     <div class="max-w-4xl mx-auto">
       <header class="mb-8 flex justify-between items-end">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Export Transcript</h1>
-          <p class="mt-2 text-gray-600">Preview and export your conversation transcript.</p>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Export Transcript</h1>
+          <p class="mt-2 text-gray-600 dark:text-gray-400">Preview and export your conversation transcript.</p>
         </div>
         <FwbButton 
           @click="downloadMarkdown"
@@ -14,7 +14,7 @@
         </FwbButton>
       </header>
 
-      <div class="bg-white shadow rounded-lg overflow-hidden flex flex-col h-[75vh]">
+      <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden flex flex-col h-[75vh]">
         <FwbTabs v-model="activeTab" variant="underline" class="flex-1 flex flex-col">
           <FwbTab name="preview" title="Preview">
             <div class="p-6 h-full overflow-auto">
@@ -25,7 +25,7 @@
             <div class="h-full p-0">
               <textarea 
                 readonly 
-                class="w-full h-[65vh] p-4 font-mono text-sm text-gray-800 bg-white border-none focus:ring-0 resize-none"
+                class="w-full h-[65vh] p-4 font-mono text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 border-none focus:ring-0 resize-none"
                 :value="markdownContent"
               ></textarea>
             </div>

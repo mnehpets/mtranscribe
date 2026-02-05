@@ -1,7 +1,7 @@
 <template>
   <div class="transcript-view">
     <!-- Title Section -->
-    <h1 v-if="transcript.title" class="text-3xl font-bold text-gray-900 mb-4">
+    <h1 v-if="transcript.title" class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
       {{ transcript.title }}
     </h1>
 
@@ -10,7 +10,7 @@
       <FwbAccordionPanel v-if="transcript.summary">
         <FwbAccordionHeader>Summary</FwbAccordionHeader>
         <FwbAccordionContent>
-          <div class="text-gray-700 italic">
+          <div class="text-gray-700 dark:text-gray-300 italic">
             {{ transcript.summary }}
           </div>
         </FwbAccordionContent>
@@ -19,7 +19,7 @@
       <FwbAccordionPanel v-if="transcript.notes">
         <FwbAccordionHeader>Notes</FwbAccordionHeader>
         <FwbAccordionContent>
-          <div class="text-gray-600">
+          <div class="text-gray-600 dark:text-gray-300">
             {{ transcript.notes }}
           </div>
         </FwbAccordionContent>
@@ -34,20 +34,20 @@
         class="turn flex gap-3"
       >
         <div class="flex items-start gap-1 pt-1 min-w-[4.5rem]">
-          <div class="text-xs text-gray-400 font-mono select-none">
+          <div class="text-xs text-gray-400 dark:text-gray-500 font-mono select-none">
             {{ formatTime(turn.timestamp) }}
           </div>
           <component
             :is="getSourceIcon(turn.source)"
-            class="text-gray-300 text-xs mt-0.5"
+            class="text-gray-300 dark:text-gray-600 text-xs mt-0.5"
             :title="turn.source"
           />
         </div>
-        <div class="flex-1">
+        <div class="flex-1 text-gray-900 dark:text-gray-100">
           <span 
             :class="['font-bold', getSpeakerColor(turn.speaker)]"
           >{{ turn.speaker }}</span>: {{ turn.text }}
-          <span v-if="turn.interim" class="text-gray-500 italic">{{ turn.interim }}</span>
+          <span v-if="turn.interim" class="text-gray-500 dark:text-gray-400 italic">{{ turn.interim }}</span>
         </div>
       </div>
     </div>
