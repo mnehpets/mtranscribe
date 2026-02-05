@@ -1,5 +1,5 @@
 <template>
-  <fwb-navbar>
+  <fwb-navbar class="sticky top-0 z-50">
     <template #logo>
       <div class="flex items-center">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white">mtranscribe</h1>
