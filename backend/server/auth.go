@@ -67,8 +67,7 @@ func setupNotionAuth(cfg *Config, sessionKey []byte, secureCookies bool, process
 		cfg.PublicURL,
 		"/auth",
 		auth.WithPreAuthHook(preAuthHook),
-		auth.WithSuccessEndpoint(authSuccessEndpoint),
-		auth.WithFailureEndpoint(authFailureEndpoint),
+		auth.WithResultEndpoint(authResultEndpoint),
 		auth.WithProcessors(processors...),
 		auth.WithCookieOptions(
 			middleware.WithSecure(secureCookies),
@@ -100,64 +99,59 @@ func preAuthHook(ctx context.Context, w http.ResponseWriter, r *http.Request, pr
 	return params, nil
 }
 
-// authSuccessEndpoint handles successful OAuth callback.
-func authSuccessEndpoint(w http.ResponseWriter, r *http.Request, params *auth.SuccessParams) (endpoint.Renderer, error) {
-	// Verify user still has an active session
-	session, ok := middleware.SessionFromContext(r.Context())
-	if !ok {
-		return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
+// authResultEndpoint handles the OAuth callback result (success or failure).
+func authResultEndpoint(w http.ResponseWriter, r *http.Request, result *auth.AuthResult) (endpoint.Renderer, error) {
+	// Determine NextURL
+	nextURL := "/u/"
+	if result.AuthParams != nil && result.AuthParams.NextURL != "" {
+		nextURL = result.AuthParams.NextURL
+	}
+	nextURL = ValidateNextURL(nextURL)
+
+	// Handle success logic if no error occurred
+	if result.Error == nil {
+		// Verify user still has an active session
+		session, ok := middleware.SessionFromContext(r.Context())
+		if !ok {
+			return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
+		}
+
+		// Use Username() to determine if user is logged in
+		if _, loggedIn := session.Username(); !loggedIn {
+			return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
+		}
+
+		// Store Notion token in session
+		notionToken := NotionToken{
+			AccessToken: result.Token.AccessToken,
+		}
+		if result.Token.RefreshToken != "" {
+			notionToken.RefreshToken = result.Token.RefreshToken
+		}
+		if !result.Token.Expiry.IsZero() {
+			notionToken.Expiry = result.Token.Expiry.Unix()
+		}
+
+		if err := session.Set("notion_token", notionToken); err != nil {
+			return nil, endpoint.Error(http.StatusInternalServerError, "failed to store token", err)
+		}
 	}
 
-	// Use Username() to determine if user is logged in
-	if _, loggedIn := session.Username(); !loggedIn {
-		return nil, endpoint.Error(http.StatusUnauthorized, "session required", nil)
-	}
-
-	// Store Notion token in session
-	notionToken := NotionToken{
-		AccessToken: params.Token.AccessToken,
-	}
-	if params.Token.RefreshToken != "" {
-		notionToken.RefreshToken = params.Token.RefreshToken
-	}
-	if !params.Token.Expiry.IsZero() {
-		notionToken.Expiry = params.Token.Expiry.Unix()
-	}
-
-	if err := session.Set("notion_token", notionToken); err != nil {
-		return nil, endpoint.Error(http.StatusInternalServerError, "failed to store token", err)
-	}
-
-	// Redirect to next_url or default
-	nextURL := ValidateNextURL(params.NextURL)
-
+	// Update URL with result status (success or failure)
 	if u, err := url.Parse(nextURL); err == nil {
 		q := u.Query()
-		q.Set("success", "true")
-		u.RawQuery = q.Encode()
-		nextURL = u.String()
-	}
-
-	return &endpoint.RedirectRenderer{URL: nextURL, Status: http.StatusFound}, nil
-}
-
-// authFailureEndpoint handles failed OAuth callback.
-func authFailureEndpoint(w http.ResponseWriter, r *http.Request, err error) (endpoint.Renderer, error) {
-	// Default to /u/ since we don't have access to next_url in failure case
-	nextURL := "/u/"
-
-	if u, errParse := url.Parse(nextURL); errParse == nil {
-		q := u.Query()
-		q.Set("success", "false")
-		if err != nil {
+		if result.Error != nil {
+			q.Set("success", "false")
 			var providerErr *auth.ProviderError
-			if errors.As(err, &providerErr) {
+			if errors.As(result.Error, &providerErr) {
 				q.Set("error", providerErr.Code)
 				q.Set("error_description", providerErr.Description)
 			} else {
 				q.Set("error", "client_error")
-				q.Set("error_description", err.Error())
+				q.Set("error_description", result.Error.Error())
 			}
+		} else {
+			q.Set("success", "true")
 		}
 		u.RawQuery = q.Encode()
 		nextURL = u.String()
