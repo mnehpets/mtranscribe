@@ -22,12 +22,46 @@ vi.mock('../../MarkdownRenderer', () => ({
   }
 }))
 
+// Mock Config
+vi.mock('../../Config', () => ({
+  AppConfig: {
+    getInstance: () => ({
+      notionExportDestinationId: 'test-dest-id'
+    })
+  }
+}))
+
+// Mock AuthService
+vi.mock('../../AuthService', () => ({
+  AuthService: {
+    getInstance: () => ({
+      checkAuth: vi.fn().mockResolvedValue(),
+      hasService: vi.fn().mockReturnValue(true)
+    })
+  }
+}))
+
+// Mock notion
+vi.mock('../../notion', () => ({
+  notion: {
+    pages: { create: vi.fn() },
+    blocks: { children: { append: vi.fn() } }
+  }
+}))
+
+// Mock notionUtils
+vi.mock('../../notionUtils', () => ({
+  transcriptToNotionBlocks: vi.fn(() => []),
+  chunkBlocks: vi.fn(() => [[]])
+}))
+
 // Mock URL.createObjectURL and URL.revokeObjectURL
 global.URL.createObjectURL = vi.fn(() => 'mock-url')
 global.URL.revokeObjectURL = vi.fn()
 
 const stubs = {
   TranscriptView: { template: '<div class="transcript-view-stub">Transcript View</div>', props: ['transcript'] },
+  RouterLink: { template: '<a><slot /></a>', props: ['to'] },
   // Simple stubs for Fwb components to allow testing logic without full library rendering
   FwbTabs: {
     props: ['modelValue'],
@@ -51,19 +85,17 @@ const stubs = {
         <slot />
       </div>
     `
-  }
+  },
+  FwbButton: {
+    template: '<button><slot /></button>'
+  },
+  'icon-mdi-check-circle': { template: '<svg />' }
 }
 
 describe('ExportView', () => {
   it('renders rendered preview by default', () => {
     const wrapper = mount(ExportView, { global: { stubs } })
     expect(wrapper.find('.transcript-view-stub').exists()).toBe(true)
-    // Markdown tab content should be hidden or not present depending on implementation, 
-    // but with v-show in stub it is present but hidden.
-    // However, textarea might be rendered but hidden.
-    // Let's check visibility or just existence if v-if was used (it's not v-if in my stub).
-    // In real FwbTabs, inactive tabs are usually hidden (v-show) or not rendered.
-    // Let's assume visibility check is safer.
     const textarea = wrapper.find('textarea')
     expect(textarea.isVisible()).toBe(false)
   })

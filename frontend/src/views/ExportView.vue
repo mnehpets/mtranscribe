@@ -79,6 +79,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { FwbTabs, FwbTab, FwbButton } from 'flowbite-vue'
 import IconMdiCheckCircle from '~icons/mdi/check-circle'
 import { useRecordingSession } from '../composables/useRecordingSession'
